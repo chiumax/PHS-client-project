@@ -1,57 +1,29 @@
-/* global gapi */
-import React from 'react';
-import logo from '../media/logo.svg';
-const {google} = require('googleapis');
-
-var load = require('load-script')
-var credentials = require("../credentials.json");
-
-// Client ID and API key from the Developer Console
-    console.log('bye');
-
-    console.log('hi');
-
+/* global window.gapi */
+import React from "react";
+import logo from "../media/logo.svg";
+//import * as credentials from "./credentials.js";
 
 export default class App extends React.Component {
   componentDidMount() {
-    
-      //var scriptFunc = document.createElement("script");
-      //scriptFunc.src = "./script.js";
-      //console.log(scriptFunc.src);
-      //document.body.appendChild(scriptFunc);
-
-      // var loadScript = document.createElement("script");
-      // loadScript.async = true;
-      // loadScript.defer = true;
-      // loadScript.src = "";
-      // loadScript.onload="this.onload=function(){};handleClientLoad()"
-      // loadScript.onreadystatechange="if (this.readyState === 'complete') this.onload()";
-      
-      // document.body.appendChild(loadScript);
-      load('https://apis.google.com/js/api.js', function (err, script) {
-  if (err) {
-    // print useful message
-  }
-  else {
-    console.log(script.src);// Prints 'foo'.js'
-        var CLIENT_ID = credentials.clientId;
-    var API_KEY = credentials.apiKey;
+    var CLIENT_ID = window.credentials.clientID;
+    var API_KEY = window.credentials.apiKey;
 
     // Array of API discovery doc URLs for APIs used by the quickstart
     var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
 
     // Authorization scopes required by the API; multiple scopes can be
     // included, separated by spaces.
-    var SCOPES = 'https://www.googleapis.com/auth/drive.metadata.readonly';
+    var SCOPES = "https://www.googleapis.com/auth/drive.metadata.readonly";
 
-    var authorizeButton = document.getElementById('authorize_button');
-    var signoutButton = document.getElementById('signout_button');
+    var authorizeButton = document.getElementById("authorize_button");
+    console.log(authorizeButton);
+    var signoutButton = document.getElementById("signout_button");
 
     /**
      *  On load, called to load the auth2 library and API client library.
      */
     function handleClientLoad() {
-      gapi.load('client:auth2', initClient);
+      window.gapi.load("client:auth2", initClient);
     }
 
     /**
@@ -59,22 +31,27 @@ export default class App extends React.Component {
      *  listeners.
      */
     function initClient() {
-      gapi.client.init({
-        apiKey: API_KEY,
-        clientId: CLIENT_ID,
-        discoveryDocs: DISCOVERY_DOCS,
-        scope: SCOPES
-      }).then(function () {
-        // Listen for sign-in state changes.
-        script.gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+      window.gapi.client
+        .init({
+          apiKey: API_KEY,
+          clientId: CLIENT_ID,
+          discoveryDocs: DISCOVERY_DOCS,
+          scope: SCOPES
+        })
+        .then(
+          function() {
+            // Listen for sign-in state changes.
+            window.gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
 
-        // Handle the initial sign-in state.
-        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
-        authorizeButton.onclick = handleAuthClick;
-        signoutButton.onclick = handleSignoutClick;
-      }, function(error) {
-        appendPre(JSON.stringify(error, null, 2));
-      });
+            // Handle the initial sign-in state.
+            updateSigninStatus(window.gapi.auth2.getAuthInstance().isSignedIn.get());
+            authorizeButton.onclick = handleAuthClick;
+            signoutButton.onclick = handleSignoutClick;
+          },
+          function(error) {
+            appendPre(JSON.stringify(error, null, 2));
+          }
+        );
     }
 
     /**
@@ -83,12 +60,12 @@ export default class App extends React.Component {
      */
     function updateSigninStatus(isSignedIn) {
       if (isSignedIn) {
-        authorizeButton.style.display = 'none';
-        signoutButton.style.display = 'block';
+        authorizeButton.style.display = "none";
+        signoutButton.style.display = "block";
         listFiles();
       } else {
-        authorizeButton.style.display = 'block';
-        signoutButton.style.display = 'none';
+        authorizeButton.style.display = "block";
+        signoutButton.style.display = "none";
       }
     }
 
@@ -96,14 +73,14 @@ export default class App extends React.Component {
      *  Sign in the user upon button click.
      */
     function handleAuthClick(event) {
-      gapi.auth2.getAuthInstance().signIn();
+      window.gapi.auth2.getAuthInstance().signIn();
     }
 
     /**
      *  Sign out the user upon button click.
      */
     function handleSignoutClick(event) {
-      gapi.auth2.getAuthInstance().signOut();
+      window.gapi.auth2.getAuthInstance().signOut();
     }
 
     /**
@@ -113,8 +90,8 @@ export default class App extends React.Component {
      * @param {string} message Text to be placed in pre element.
      */
     function appendPre(message) {
-      var pre = document.getElementById('content');
-      var textContent = document.createTextNode(message + '\n');
+      var pre = document.getElementById("content");
+      var textContent = document.createTextNode(message + "\n");
       pre.appendChild(textContent);
     }
 
@@ -122,52 +99,53 @@ export default class App extends React.Component {
      * Print files.
      */
     function listFiles() {
-      gapi.client.drive.files.list({
-        'pageSize': 10,
-        'fields': "nextPageToken, files(id, name)"
-      }).then(function(response) {
-        appendPre('Files:');
-        var files = response.result.files;
-        if (files && files.length > 0) {
-          for (var i = 0; i < files.length; i++) {
-            var file = files[i];
-            appendPre(file.name + ' (' + file.id + ')');
+      window.gapi.client.drive.files
+        .list({
+          pageSize: 10,
+          fields: "nextPageToken, files(id, name)"
+        })
+        .then(function(response) {
+          appendPre("Files:");
+          var files = response.result.files;
+          if (files && files.length > 0) {
+            for (var i = 0; i < files.length; i++) {
+              var file = files[i];
+              appendPre(file.name + " (" + file.id + ")");
+            }
+          } else {
+            appendPre("No files found.");
           }
-        } else {
-          appendPre('No files found.');
-        }
-      });
+        });
     }
-    handleClientLoad();
-    console.log("it really does work!");
-    // use script
-    // note that in IE8 and below loading error wouldn't be reported
+    console.log(window.CLIENT_ID);
   }
-})
 
+  render() {
+    return (
+      <div className="App">
+        <header>
+          <img src={logo} className="App-logo" alt="logo" />
+          <p>
+            Edit <code>saarc/App.js</code> and save to reload.
+          </p>
+          <a
+            className="App-link"
+            href="https://reactjs.org"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Learn React
+          </a>
+          <p>Drive API Quickstart</p>
+
+          <button id="authorize_button" style={{ display: "none" }}>
+            Authorize
+          </button>
+          <button id="signout_button" style={{ display: "none" }}>
+            Sign Out
+          </button>
+        </header>
+      </div>
+    );
+  }
 }
-
-  render(){
-  return (
-    <div className="App">
-    <header>  
-       
-
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>saarc/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );}
-}
-
-
