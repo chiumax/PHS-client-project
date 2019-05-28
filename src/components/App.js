@@ -4,6 +4,7 @@ import logo from "../media/logo.svg";
 //import * as credentials from "./credentials.js";
 
 export default class App extends React.Component {
+  state = { url: "" };
   componentDidMount() {
     var CLIENT_ID = window.credentials.clientID;
     var API_KEY = window.credentials.apiKey;
@@ -13,17 +14,89 @@ export default class App extends React.Component {
 
     // Authorization scopes required by the API; multiple scopes can be
     // included, separated by spaces.
-    var SCOPES = "https://www.googleapis.com/auth/drive.metadata.readonly";
+    var SCOPES =
+      "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly";
 
     var authorizeButton = document.getElementById("authorize_button");
-    console.log(authorizeButton);
     var signoutButton = document.getElementById("signout_button");
+    handleClientLoad();
+    // The Browser API key obtained from the Google API Console.
+    // Replace with your own Browser API key, or your own key.
+    var developerKey = "AIzaSyCVdNsIFlZ64SBTXLGzOokjqOJX0rH4z2o";
 
-    /**
-     *  On load, called to load the auth2 library and API client library.
-     */
+    // Replace with your own project number from console.developers.google.com.
+    // See "Project number" under "IAM & Admin" > "Settings"
+    var appId = "527405108362";
+
+    // Scope to use to access user's Drive items.
+
+    var pickerApiLoaded = false;
+    var oauthToken;
+
+    function onPickerApiLoad() {
+      pickerApiLoaded = true;
+      createPicker();
+    }
+    function handleAuthResult(authResult) {
+      if (authResult && !authResult.error) {
+        oauthToken = authResult.access_token;
+        createPicker();
+      }
+    }
+    function onAuthApiLoad() {
+      window.gapi.auth.authorize(
+        {
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          immediate: false
+        },
+        handleAuthResult
+      );
+    }
+
+    // Create and render a Picker object for searching images.
+    function createPicker() {
+      if (pickerApiLoaded && oauthToken) {
+        var view = new window.google.picker.View(window.google.picker.ViewId.DOCS);
+        view.setMimeTypes("application/vnd.google-apps.spreadsheet");
+        var picker = new window.google.picker.PickerBuilder()
+          .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
+          .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+          .setAppId(appId)
+          .setOAuthToken(oauthToken)
+          .addView(view)
+          .addView(new window.google.picker.DocsUploadView())
+          .setDeveloperKey(developerKey)
+          .setCallback(pickerCallback)
+          .build();
+        picker.setVisible(true);
+      }
+    }
+
+    // A simple callback implementation.
+    var pickerCallback = data => {
+      if (data.action == window.google.picker.Action.PICKED) {
+        var fileId = data.docs[0].id;
+        window.gapi.client.drive.permissions
+          .list({ fileId: fileId, fields: "*" })
+          .then(response => {
+            console.log(response);
+            // this.setState({
+            //   url:
+            //     "https://lh3.google.com/0Gag73VHZTGFCtUSOdtCvoKl-x0Dbv71oGBOvjgeO8xeSoDmsE0ENmVmrexGDdErnZ3mSqrkd18vpchjj177hi8K0dwtDLhg=w320"
+            // });
+          });
+        this.setState({
+          url: `https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${fileId}`
+        });
+        alert("The user selected: " + fileId);
+      }
+    };
     function handleClientLoad() {
       window.gapi.load("client:auth2", initClient);
+      window.gapi.load("auth", { callback: onAuthApiLoad });
+
+      window.gapi.load("picker", { callback: onPickerApiLoad });
     }
 
     /**
@@ -98,7 +171,7 @@ export default class App extends React.Component {
     /**
      * Print files.
      */
-    function listFiles() {
+    var listFiles = () => {
       window.gapi.client.drive.files
         .list({
           pageSize: 10,
@@ -116,7 +189,21 @@ export default class App extends React.Component {
             appendPre("No files found.");
           }
         });
-    }
+      window.gapi.client.drive.files
+        .get({ fileId: "1FPeKddAkiiVhgX1-C3-2U1JOnux0C-F4PNcXoAbdlxw", fields: "*" })
+        .then(response => {
+          //console.log(response);
+          // this.setState({
+          //   url:
+          //     "https://lh3.google.com/0Gag73VHZTGFCtUSOdtCvoKl-x0Dbv71oGBOvjgeO8xeSoDmsE0ENmVmrexGDdErnZ3mSqrkd18vpchjj177hi8K0dwtDLhg=w320"
+          // });
+        });
+      //window.gapi.client.drive.files.get;
+    };
+    /**
+     *  On load, called to load the auth2 library and API client library.
+     */
+
     console.log(window.CLIENT_ID);
   }
 
@@ -124,7 +211,7 @@ export default class App extends React.Component {
     return (
       <div className="App">
         <header>
-          <img src={logo} className="App-logo" alt="logo" />
+          <img src={this.state.url} className="App-logo" alt="logo" />
           <p>
             Edit <code>saarc/App.js</code> and save to reload.
           </p>
