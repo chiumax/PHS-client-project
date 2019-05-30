@@ -1,0 +1,123 @@
+
+var ss = SpreadsheetApp.getActiveSpreadsheet();
+var freeze=SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+//window.addEventListener('load', inputData, false)
+freeze.setFrozenRows(5);
+
+function addRow() {
+ var add=SpreadsheetApp.getActiveRange().offset(0,0); 
+  add.setBorder(true, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
+  add.activate();
+}
+
+
+function delRow(){
+  
+  var del=SpreadsheetApp.getActiveRange().offset(0,0); 
+  del.setBorder(true, true, true, true, true, true, "white", SpreadsheetApp.BorderStyle.SOLID); 
+  del.setValue("");
+  del.setBackgroundRGB(255, 255, 255);
+  del.activate();
+}
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('Column Types')
+      .addItem('Checkbox', 'checkBox')
+      .addItem('Hyperlink', 'hyper')
+      .addItem('Custom Dropdown', 'newDrop')
+      .addToUi();
+  ui.createMenu('Data Input')
+  .addItem('Input Stud. Data', 'inputData')
+  .addToUi();
+  ui.createMenu('File Picker')
+  .addItem('Choose File', 'chooseFile')
+  .addToUi();
+}
+function hyper(){
+  var single = '"';
+  var userInput = Browser.inputBox('Input the link');
+  var cellRead = Browser.inputBox('On-screen display');
+  var hyperLinkRange = SpreadsheetApp.getCurrentCell();
+  var temp = ss.getRange('AA20');
+  temp.setValue(userInput);
+  var temp2 = ss.getRange('AA21');
+  temp2.setValue(cellRead);
+  hyperLinkRange.setFormula('=HYPERLINK(AA20, AA21)');
+ 
+}
+function colHead(){
+  var col=SpreadsheetApp.getActiveRange().offset(0,0); 
+  col.setBorder(false, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
+  col.activate();
+  col.setValue("Col Head");
+  col.setBackgroundRGB(135, 206, 250);
+    
+  
+}
+function inputData(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var count = 0;
+  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
+    count = count+1;
+  }
+  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(9, 1).setValue(count);
+  for(var r = 0; r<count;r=r+1){
+     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
+  var y = x.getValue();
+  var userInput = Browser.inputBox(y);
+  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
+    
+  }
+ 
+
+  
+}
+
+
+function checkBox(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var numRows = 0;
+  for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue()!== "";rows = rows+1){
+    numRows= numRows +1;
+  }
+  var makeCheck = SpreadsheetApp.newDataValidation();
+  makeCheck.requireCheckbox();
+  makeCheck.setAllowInvalid(false);
+  makeCheck.build();
+  var totalRange = SpreadsheetApp.getActiveSheet().getRange(spread.getActiveSheet().getActiveCell().getRow(), spread.getActiveSheet().getActiveCell().getColumn(), numRows)
+ 
+  totalRange.setDataValidation(makeCheck);
+  
+  
+}
+function newDrop(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var choices = spread.getActiveRange();
+  var choiceVal = choices.getValues();
+  var initial = SpreadsheetApp.newDataValidation().requireValueInList(choiceVal);
+  var numRows = 0;
+for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue() != "";rows = rows+1){
+  numRows= numRows +1;
+}
+
+  
+  for (var i = 0; i<numRows;i=i+1){
+    var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow()+i, spread.getActiveCell().getColumn());
+    x.setValue("");
+    x.setDataValidation(initial);
+  }
+}
+function chooseFile(){
+   var html = HtmlService.createHtmlOutputFromFile('')
+      .setWidth(200)
+      .setHeight(300)
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Pick a Folder to Upload');
+}
+function getOAuthToken() {
+  DriveApp.getRootFolder();
+  return ScriptApp.getOAuthToken();
+}
+
+
+
