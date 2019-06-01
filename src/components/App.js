@@ -4,7 +4,7 @@ import logo from "../media/logo.svg";
 //import * as credentials from "./credentials.js";
 
 export default class App extends React.Component {
-  state = { url: "" };
+  state = { url: "", CLIENT_ID: window.credentials.clientID, API_KEY: window.credentials.apiKey, DICOVERY_DOCS:["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],SCOPES: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly" };
   componentDidMount() {
     var CLIENT_ID = window.credentials.clientID;
     var API_KEY = window.credentials.apiKey;
@@ -40,6 +40,8 @@ export default class App extends React.Component {
     function handleAuthResult(authResult) {
       if (authResult && !authResult.error) {
         oauthToken = authResult.access_token;
+        window.gapi.load('drive-share', init);
+        pickerApiLoaded = true;
         createPicker();
       }
     }
@@ -77,6 +79,9 @@ export default class App extends React.Component {
     var pickerCallback = data => {
       if (data.action == window.google.picker.Action.PICKED) {
         var fileId = data.docs[0].id;
+        window.gapi.client.drive.files.copy({fileId:fileId, resource:{name:"ESHKET"}}).then(response => {
+          console.log(response);
+        })
         window.gapi.client.drive.permissions
           .list({ fileId: fileId, fields: "*" })
           .then(response => {
@@ -90,20 +95,38 @@ export default class App extends React.Component {
           url: `https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${fileId}`
         });
         alert("The user selected: " + fileId);
+       
       }
     };
     function handleClientLoad() {
-      window.gapi.load("client:auth2", initClient);
-      window.gapi.load("auth", { callback: onAuthApiLoad });
-
-      window.gapi.load("picker", { callback: onPickerApiLoad });
+      window.gapi.load("client:auth2:auth:picker", initClient);
+      //window.gapi.load("auth", { callback: onAuthApiLoad });
+      
+      //window.gapi.load("picker", { callback: onPickerApiLoad });
+      
     }
+
+var init = () => {
+        var s = new window.gapi.drive.share.ShareClient();
+        s.setOAuthToken(oauthToken);
+        s.setItemIds(['1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI']);
+        s.showSettingsDialog()
+    }
+    
 
     /**
      *  Initializes the API client library and sets up sign-in state
      *  listeners.
      */
     function initClient() {
+       window.gapi.auth.authorize(
+        {
+          client_id: CLIENT_ID,
+          scope: SCOPES,
+          immediate: false
+        },
+        handleAuthResult
+      );
       window.gapi.client
         .init({
           apiKey: API_KEY,
@@ -192,6 +215,9 @@ export default class App extends React.Component {
       window.gapi.client.drive.files
         .get({ fileId: "1FPeKddAkiiVhgX1-C3-2U1JOnux0C-F4PNcXoAbdlxw", fields: "*" })
         .then(response => {
+          console.log(response);
+          
+
           //console.log(response);
           // this.setState({
           //   url:
