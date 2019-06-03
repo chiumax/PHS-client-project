@@ -28,9 +28,13 @@ function onOpen() {
       .addToUi();
   ui.createMenu('Data Input')
   .addItem('Input Stud. Data', 'inputData')
+  .addItem('Add Column', 'singleCol')
   .addToUi();
   ui.createMenu('File Picker')
   .addItem('Choose File', 'chooseFile')
+  .addToUi();
+  ui.createMenu('Undo')
+  .addItem('Remove Dropdown', 'removeDrop')
   .addToUi();
 }
 function hyper(){
@@ -60,7 +64,6 @@ function inputData(){
   for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
     count = count+1;
   }
-  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(9, 1).setValue(count);
   for(var r = 0; r<count;r=r+1){
      var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
   var y = x.getValue();
@@ -107,17 +110,83 @@ for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue() !
     x.setDataValidation(initial);
   }
 }
-function chooseFile(){
-   var html = HtmlService.createHtmlOutputFromFile('')
-      .setWidth(200)
-      .setHeight(300)
-      .setSandboxMode(HtmlService.SandboxMode.IFRAME);
-  SpreadsheetApp.getUi().showModalDialog(html, 'Pick a Folder to Upload');
+
+
+
+function removeDrop(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  spread.getActiveSheet().getActiveRange().setDataValidation(null);
+  spread.getActiveSheet().getActiveRange().setValue("");
+}  
+function search(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var userInput = Browser.inputBox("What Column are you searching");
+  var count = 0;
+  var newStr = '';
+  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
+    count = count+1;
+  }
+  var colIndex = 0
+  var check = false;
+  for(var r = 0; r<count &&check==false;r=r+1){
+     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
+    colIndex =spread.getActiveCell().getColumn()+r;
+    if(userInput.equals(x.getValue())){
+      
+      var numRows = 0;
+      var input2 = Browser.inputBox("What item are you looking for");
+      for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue() != "";rows = rows+1){
+        numRows= numRows +1;
+        check=true;
+      }
+  }
+    
+  }
+
+      var tempCell = SpreadsheetApp.getActiveSheet().getRange(5, colIndex);
+      for (var i = 0; i<numRows;i=i+1){
+        var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(tempCell.getRow()+i, colIndex).getValue();
+        if (x.equals(input2)&&check==true){
+          SpreadsheetApp.getActiveSheet().getRange(2, 11).setValue(spread.getActiveCell().getRow()+i).setHorizontalAlignment("center"); 
+          var colLetter = (colIndex%26)+64;
+          newStr = String.fromCharCode(colLetter);
+          SpreadsheetApp.getActiveSheet().getRange(2, 10).setValue(newStr).setHorizontalAlignment("center"); 
+          
+          
+          
+          
+                                                               
+        }    
+      
+      }
+ 
+ }
+
+
+function singleCol(){
+  var numRows = 0;
+  for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue()!== "";rows = rows+1){
+    numRows= numRows +1;
+  }
+  var col=SpreadsheetApp.getActiveRange().offset(0,0); 
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  col.setBorder(false, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
+  col.activate();
+  col.setValue("Col Head");
+  col.setBackgroundRGB(135, 206, 250);
+  for(var counter = 1;counter<=numRows;counter=counter+1){
+    var changeCell = SpreadsheetApp.getActiveSheet().getRange(5+counter,spread.getActiveCell().getColumn() );
+    changeCell.setBorder(true, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
+    changeCell.activate();
+    
+  }
+  
 }
-function getOAuthToken() {
-  DriveApp.getRootFolder();
-  return ScriptApp.getOAuthToken();
-}
+      
+    
+  
+  
+
 
 
 
