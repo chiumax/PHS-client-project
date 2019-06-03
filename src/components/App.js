@@ -191,7 +191,7 @@ export default class App extends React.Component {
               data: response.result.values
             }),
             () => {
-              handleSheetChange("Import file");
+              this.handleSheetChange("Import file");
               console.log(this.state.data);
             }
           );
@@ -453,3 +453,6 @@ export default class App extends React.Component {
     );
   }
 }
+//uniq = [...new Set(array)];
+//.map
+//https://docs.google.com/spreadsheets/d/1H7U9DOdND02G_zxuISeYKsyQhm8erjwLgRimcWaud7U/edit#gid=0
