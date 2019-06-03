@@ -11,12 +11,12 @@ export default class App extends React.Component {
     profileName: "",
     classNew: "",
     dataNew: "",
-    data: [
-      ["", "Tesla", "Mercedes", "Toyota", "Volvo"],
-      ["2019", 10, 11, 12, 13],
-      ["2020", 20, 11, 14, 13],
-      ["2021", 30, 15, 12, 13]
-    ],
+    selectedRow:"",
+    selectedColumn:"",
+    data: undefined,
+    header:[],
+    verticalData:[],
+    columns:[],
     authButtonClass: "buttonNone",
     signOutButtonClass: "buttonNone",
     oauthToken: undefined,
@@ -104,37 +104,13 @@ export default class App extends React.Component {
       })
       .then(response => {
         this.setState({ currentFiles: [response.result.id] });
+         gapi.client.sheets.spreadsheets.values
+        .get({ spreadsheetId: response.result.id, range: "Sheet1" })
+        .then(response => {this.setState({data:response.result.values})})
         console.log(response);
       });
   };
 
-  pickerCallback = data => {
-    if (data.action == window.google.picker.Action.PICKED) {
-      var fileId = data.docs[0].id;
-      window.gapi.client.drive.files
-        .copy({
-          fileId: fileId,
-          resource: {
-            name: "ESHKET"
-          }
-        })
-        .then(response => {
-          console.log(response);
-        });
-      window.gapi.client.drive.permissions
-        .list({
-          fileId: fileId,
-          fields: "*"
-        })
-        .then(response => {
-          console.log(response);
-        });
-      this.setState({
-        url: `https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${fileId}`
-      });
-      alert("The user selected: " + fileId);
-    }
-  };
   //---end new workspace functions---\\
 
   //---begin picker functions---\\
@@ -143,16 +119,15 @@ export default class App extends React.Component {
   handleOpenSheet = () => {
     console.log("handling");
     this.openPicker("application/vnd.google-apps.spreadsheet", this.handleOpenSheetCallback);
-  };
+  }; 
 
   handleOpenSheetCallback = response => {
-    //read all sheet data and add those files to current files
-    //as well as delete previous current files
     console.log(response);
     if (response.action === window.google.picker.Action.PICKED) {
       const fileId = response.docs[0].id;
       console.log(fileId);
-      gapi.client.sheets.spreadsheets.values
+      gapi.client.sheets.spreadsheets.values.get({spreadsheetId:fileId, range:"Sheet1", majorDimension:"COLUMNS"}).then(response =>{
+        this.setState({verticalData:response.result.values},()=>{ gapi.client.sheets.spreadsheets.values
         .get({ spreadsheetId: fileId, range: "Sheet1" })
         .then(response => {
           console.log(response);
@@ -163,9 +138,11 @@ export default class App extends React.Component {
             }),
             () => {
               console.log(this.state.data);
+              this.handleDataParse();
             }
           );
-        });
+        });})})
+      
     }
   };
 
@@ -176,13 +153,12 @@ export default class App extends React.Component {
   };
 
   handleImportSheetCallback = response => {
-    //read all sheet data and add those files to current files
-    //as well as delete previous current files
-
     if (response.action === window.google.picker.Action.PICKED) {
       const fileId = response.docs[0].id;
       console.log(fileId);
-      gapi.client.sheets.spreadsheets.values
+      gapi.client.sheets.spreadsheets.values.get({spreadsheetId:fileId, range:"Sheet1", majorDimension:"COLUMNS"}).then(response =>{
+        this.setState({verticalData:response.result.values},()=>{
+              gapi.client.sheets.spreadsheets.values
         .get({ spreadsheetId: fileId, range: "Sheet1" })
         .then(response => {
           console.log(response);
@@ -193,11 +169,60 @@ export default class App extends React.Component {
             () => {
               this.handleSheetChange("Import file");
               console.log(this.state.data);
+              this.handleDataParse();
             }
           );
         });
+        })
+      })
+  
     }
   };
+
+  handleDataParse = () => {
+      console.log(this.state.verticalData)
+      let column = [];
+      let arr = this.state.verticalData
+      for(let i = 0; i<arr.length;i++){
+        if(arr[i][1] == "TRUE" || arr[i][1] == "FALSE"){
+          column.push({
+            type:"checkbox"
+          })
+        } else {
+        let temp= arr[i];
+        temp.shift();
+        let returnVar = this.handleUnique(temp);
+        if (Math.max(...returnVar[1])>3){
+          column.push({
+            type:"dropdown",
+            source:returnVar[0]
+          })
+        } else{
+          column.push({})
+        }
+      }
+      }
+      this.setState({column:column, header:this.state.data[0]})
+      console.log(column)    
+  }
+
+  //Given an array, returns an ordered list with unique vars and their corresponding frequencies
+  handleUnique = (arr) => {
+     var a = [], b = [], prev;
+
+    arr.sort();
+    for ( var i = 0; i < arr.length; i++ ) {
+        if ( arr[i] !== prev ) {
+            a.push(arr[i]);
+            b.push(1);
+        } else {
+            b[b.length-1]++;
+        }
+        prev = arr[i];
+    }
+
+    return [a, b];
+  }
 
   //Add file to Sheet
   handleAddFile = () => {
@@ -208,6 +233,11 @@ export default class App extends React.Component {
   handleAddFileCallback = response => {
     //add file to current files
     console.log(response);
+    if (this.state.selectedRow==0){
+      var arr = this.state.data.slice();
+      arr[0][this.state.selectedColumn]="<b>Bold</b> and <em>Beautiful</em>"
+      this.setState(prevState=>({data:arr}))
+    }
   };
 
   openPicker = (type, callback) => {
@@ -273,6 +303,13 @@ export default class App extends React.Component {
         );
     }
   };
+
+  handleSheetSelection= (r,c) => {
+    console.log(r,c);
+    this.setState({
+      selectedRow:r,selectedColumn:c
+    })
+  }
 
   //---end spreadsheet functions---\\
 
@@ -361,30 +398,33 @@ export default class App extends React.Component {
           >
             add file
           </button>
+         
           <HotTable
             afterChange={change => {
               this.handleSheetChange(change);
+            }}
+            afterSelection={(r,c)=>{
+              this.handleSheetSelection(r,c);
             }}
             data={this.state.data}
             colHeaders={true}
             rowHeaders={true}
             width="600"
+            columns={this.state.column}
             height="300"
-            colHeaders={this.state.data[0]}
+            colHeaders={this.state.header}
             settings={{
               stretchH: "all",
               width: 880,
               autoWrapRow: true,
               height: 487,
-
               manualRowResize: true,
               manualColumnResize: true,
               rowHeaders: true,
-
               manualRowMove: true,
               manualColumnMove: true,
               contextMenu: true,
-              filters: true,
+              
               dropdownMenu: true,
               columnSorting: {
                 indicator: true
