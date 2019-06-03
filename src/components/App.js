@@ -1,263 +1,454 @@
 /* global window.gapi */
 import React from "react";
+import { HotTable } from "@handsontable/react";
 import logo from "../media/logo.svg";
-//import * as credentials from "./credentials.js";
+const gapi = window.gapi;
 
 export default class App extends React.Component {
-  state = { url: "", CLIENT_ID: window.credentials.clientID, API_KEY: window.credentials.apiKey, DICOVERY_DOCS:["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"],SCOPES: "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly" };
+  state = {
+    url: "",
+    profilePicture: "",
+    profileName: "",
+    classNew: "",
+    dataNew: "",
+    data: [
+      ["", "Tesla", "Mercedes", "Toyota", "Volvo"],
+      ["2019", 10, 11, 12, 13],
+      ["2020", 20, 11, 14, 13],
+      ["2021", 30, 15, 12, 13]
+    ],
+    authButtonClass: "buttonNone",
+    signOutButtonClass: "buttonNone",
+    oauthToken: undefined,
+    currentFiles: [],
+    libraries: "client:auth2:picker:drive-share",
+    developerKey: "AIzaSyCVdNsIFlZ64SBTXLGzOokjqOJX0rH4z2o",
+    appId: "527405108362",
+    CLIENT_ID: window.credentials.clientID,
+    API_KEY: window.credentials.apiKey,
+    DISCOVERY_DOCS: [
+      "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
+      "https://sheets.googleapis.com/$discovery/rest?version=v4"
+    ],
+    SCOPES:
+      "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly"
+  };
+
+  //---start setup---\\
   componentDidMount() {
-    var CLIENT_ID = window.credentials.clientID;
-    var API_KEY = window.credentials.apiKey;
+    this.handleClientLoad();
+  }
+  handleClientLoad = () => {
+    gapi.load(this.state.libraries, this.initClient);
+  };
 
-    // Array of API discovery doc URLs for APIs used by the quickstart
-    var DISCOVERY_DOCS = ["https://www.googleapis.com/discovery/v1/apis/drive/v3/rest"];
-
-    // Authorization scopes required by the API; multiple scopes can be
-    // included, separated by spaces.
-    var SCOPES =
-      "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly";
-
-    var authorizeButton = document.getElementById("authorize_button");
-    var signoutButton = document.getElementById("signout_button");
-    handleClientLoad();
-    // The Browser API key obtained from the Google API Console.
-    // Replace with your own Browser API key, or your own key.
-    var developerKey = "AIzaSyCVdNsIFlZ64SBTXLGzOokjqOJX0rH4z2o";
-
-    // Replace with your own project number from console.developers.google.com.
-    // See "Project number" under "IAM & Admin" > "Settings"
-    var appId = "527405108362";
-
-    // Scope to use to access user's Drive items.
-
-    var pickerApiLoaded = false;
-    var oauthToken;
-
-    function onPickerApiLoad() {
-      pickerApiLoaded = true;
-      createPicker();
-    }
-    function handleAuthResult(authResult) {
-      if (authResult && !authResult.error) {
-        oauthToken = authResult.access_token;
-        window.gapi.load('drive-share', init);
-        pickerApiLoaded = true;
-        createPicker();
-      }
-    }
-    function onAuthApiLoad() {
-      window.gapi.auth.authorize(
-        {
-          client_id: CLIENT_ID,
-          scope: SCOPES,
-          immediate: false
+  initClient = () => {
+    gapi.client
+      .init({
+        apiKey: this.state.API_KEY,
+        clientId: this.state.CLIENT_ID,
+        discoveryDocs: this.state.DISCOVERY_DOCS,
+        scope: this.state.SCOPES
+      })
+      .then(
+        () => {
+          gapi.auth2.getAuthInstance().isSignedIn.listen(this.updateSigninStatus);
+          this.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
         },
-        handleAuthResult
+        error => {
+          console.log(error);
+        }
       );
-    }
+  };
 
-    // Create and render a Picker object for searching images.
-    function createPicker() {
-      if (pickerApiLoaded && oauthToken) {
-        var view = new window.google.picker.View(window.google.picker.ViewId.DOCS);
-        view.setMimeTypes("application/vnd.google-apps.spreadsheet");
-        var picker = new window.google.picker.PickerBuilder()
-          .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
-          .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
-          .setAppId(appId)
-          .setOAuthToken(oauthToken)
-          .addView(view)
-          .addView(new window.google.picker.DocsUploadView())
-          .setDeveloperKey(developerKey)
-          .setCallback(pickerCallback)
-          .build();
-        picker.setVisible(true);
-      }
+  updateSigninStatus = isSignedIn => {
+    const user = gapi.auth2.getAuthInstance().currentUser.get();
+    if (isSignedIn) {
+      this.setState({
+        authButtonClass: "buttonNone",
+        signOutButtonClass: "buttonBlock",
+        oauthToken: user.getAuthResponse().access_token,
+        profilePicture: user.getBasicProfile().getImageUrl(),
+        profileName: user.getBasicProfile().getName()
+      });
+    } else {
+      this.setState({
+        authButtonClass: "buttonBlock",
+        signOutButtonClass: "buttonNone",
+        profilePicture: "",
+        profileName: ""
+      });
     }
+  };
 
-    // A simple callback implementation.
-    var pickerCallback = data => {
-      if (data.action == window.google.picker.Action.PICKED) {
-        var fileId = data.docs[0].id;
-        window.gapi.client.drive.files.copy({fileId:fileId, resource:{name:"ESHKET"}}).then(response => {
-          console.log(response);
+  handleAuthClick = event => {
+    gapi.auth2.getAuthInstance().signIn();
+  };
+
+  handleSignoutClick = event => {
+    gapi.auth2.getAuthInstance().signOut();
+  };
+  //---end setup---\\
+
+  //---begin new workspace functions---\\
+  handleNewSheet = () => {
+    //add sheet to current files
+    console.log("handling");
+    window.gapi.client.drive.files
+      .copy({
+        fileId: "1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI",
+        fields: "*",
+        resource: {
+          name: this.state.dataNew
+        }
+      })
+      .then(response => {
+        this.setState({ currentFiles: [response.result.id] });
+        console.log(response);
+      });
+  };
+
+  pickerCallback = data => {
+    if (data.action == window.google.picker.Action.PICKED) {
+      var fileId = data.docs[0].id;
+      window.gapi.client.drive.files
+        .copy({
+          fileId: fileId,
+          resource: {
+            name: "ESHKET"
+          }
         })
-        window.gapi.client.drive.permissions
-          .list({ fileId: fileId, fields: "*" })
-          .then(response => {
-            console.log(response);
-            // this.setState({
-            //   url:
-            //     "https://lh3.google.com/0Gag73VHZTGFCtUSOdtCvoKl-x0Dbv71oGBOvjgeO8xeSoDmsE0ENmVmrexGDdErnZ3mSqrkd18vpchjj177hi8K0dwtDLhg=w320"
-            // });
-          });
-        this.setState({
-          url: `https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${fileId}`
+        .then(response => {
+          console.log(response);
         });
-        alert("The user selected: " + fileId);
-       
+      window.gapi.client.drive.permissions
+        .list({
+          fileId: fileId,
+          fields: "*"
+        })
+        .then(response => {
+          console.log(response);
+        });
+      this.setState({
+        url: `https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${fileId}`
+      });
+      alert("The user selected: " + fileId);
+    }
+  };
+  //---end new workspace functions---\\
+
+  //---begin picker functions---\\
+
+  //Opens existing workspace
+  handleOpenSheet = () => {
+    console.log("handling");
+    this.openPicker("application/vnd.google-apps.spreadsheet", this.handleOpenSheetCallback);
+  };
+
+  handleOpenSheetCallback = response => {
+    //read all sheet data and add those files to current files
+    //as well as delete previous current files
+    console.log(response);
+    if (response.action === window.google.picker.Action.PICKED) {
+      const fileId = response.docs[0].id;
+      console.log(fileId);
+      gapi.client.sheets.spreadsheets.values
+        .get({ spreadsheetId: fileId, range: "Sheet1" })
+        .then(response => {
+          console.log(response);
+          this.setState(
+            prevState => ({
+              currentFiles: [fileId, ...prevState.currentFiles],
+              data: response.result.values
+            }),
+            () => {
+              console.log(this.state.data);
+            }
+          );
+        });
+    }
+  };
+
+  //Import sheet data. !Overwrites current data in sheet!
+  handleImportSheet = () => {
+    console.log("handling");
+    this.openPicker("application/vnd.google-apps.spreadsheet", this.handleImportSheetCallback);
+  };
+
+  handleImportSheetCallback = response => {
+    //read all sheet data and add those files to current files
+    //as well as delete previous current files
+
+    if (response.action === window.google.picker.Action.PICKED) {
+      const fileId = response.docs[0].id;
+      console.log(fileId);
+      gapi.client.sheets.spreadsheets.values
+        .get({ spreadsheetId: fileId, range: "Sheet1" })
+        .then(response => {
+          console.log(response);
+          this.setState(
+            prevState => ({
+              data: response.result.values
+            }),
+            () => {
+              handleSheetChange("Import file");
+              console.log(this.state.data);
+            }
+          );
+        });
+    }
+  };
+
+  //Add file to Sheet
+  handleAddFile = () => {
+    console.log("handling");
+    this.openPicker("*", this.handleAddFileCallback);
+  };
+
+  handleAddFileCallback = response => {
+    //add file to current files
+    console.log(response);
+  };
+
+  openPicker = (type, callback) => {
+    if (this.state.oauthToken) {
+      var view = new window.google.picker.View(window.google.picker.ViewId.DOCS);
+      if (type != "*") {
+        view.setMimeTypes(type);
       }
-    };
-    function handleClientLoad() {
-      window.gapi.load("client:auth2:auth:picker", initClient);
-      //window.gapi.load("auth", { callback: onAuthApiLoad });
-      
-      //window.gapi.load("picker", { callback: onPickerApiLoad });
-      
+      var picker = new window.google.picker.PickerBuilder()
+        .enableFeature(window.google.picker.Feature.NAV_HIDDEN)
+        .enableFeature(window.google.picker.Feature.MULTISELECT_ENABLED)
+        .setAppId(this.state.appId)
+        .setOAuthToken(this.state.oauthToken)
+        .addView(view)
+        .addView(new window.google.picker.DocsUploadView())
+        .setDeveloperKey(this.state.developerKey)
+        .setCallback(callback)
+        .build();
+      picker.setVisible(true);
     }
+  };
 
-var init = () => {
-        var s = new window.gapi.drive.share.ShareClient();
-        s.setOAuthToken(oauthToken);
-        s.setItemIds(['1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI']);
-        s.showSettingsDialog()
+  //---end picker functions---\\
+
+  //---share functions---\\
+  handleShareWorkspace = () => {
+    console.log(this.state.currentFiles);
+    if (this.state.currentFiles.length >= 1) {
+      console.log("handling");
+      this.openShare();
     }
-    
+  };
 
-    /**
-     *  Initializes the API client library and sets up sign-in state
-     *  listeners.
-     */
-    function initClient() {
-       window.gapi.auth.authorize(
-        {
-          client_id: CLIENT_ID,
-          scope: SCOPES,
-          immediate: false
-        },
-        handleAuthResult
-      );
-      window.gapi.client
-        .init({
-          apiKey: API_KEY,
-          clientId: CLIENT_ID,
-          discoveryDocs: DISCOVERY_DOCS,
-          scope: SCOPES
+  openShare = () => {
+    var s = new window.gapi.drive.share.ShareClient();
+    s.setOAuthToken(this.state.oauthToken);
+    s.setItemIds(this.state.currentFiles);
+    s.showSettingsDialog();
+  };
+
+  //---end share functions---\\
+
+  //---spreadsheet functions---\\
+
+  handleSheetChange = response => {
+    console.log(response);
+    console.log(this.state.data);
+    if (this.state.currentFiles.length >= 1) {
+      gapi.client.sheets.spreadsheets.values
+        .update({
+          spreadsheetId: this.state.currentFiles[0],
+          range: "sheet1",
+          values: this.state.data,
+          valueInputOption: "USER_ENTERED"
         })
         .then(
-          function() {
-            // Listen for sign-in state changes.
-            window.gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
-
-            // Handle the initial sign-in state.
-            updateSigninStatus(window.gapi.auth2.getAuthInstance().isSignedIn.get());
-            authorizeButton.onclick = handleAuthClick;
-            signoutButton.onclick = handleSignoutClick;
+          response => {
+            console.log(response);
           },
-          function(error) {
-            appendPre(JSON.stringify(error, null, 2));
+          error => {
+            console.log(error);
           }
         );
     }
+  };
 
-    /**
-     *  Called when the signed in status changes, to update the UI
-     *  appropriately. After a sign-in, the API is called.
-     */
-    function updateSigninStatus(isSignedIn) {
-      if (isSignedIn) {
-        authorizeButton.style.display = "none";
-        signoutButton.style.display = "block";
-        listFiles();
-      } else {
-        authorizeButton.style.display = "block";
-        signoutButton.style.display = "none";
-      }
-    }
+  //---end spreadsheet functions---\\
 
-    /**
-     *  Sign in the user upon button click.
-     */
-    function handleAuthClick(event) {
-      window.gapi.auth2.getAuthInstance().signIn();
-    }
+  //---handle modal stuff and inputs---\\
 
-    /**
-     *  Sign out the user upon button click.
-     */
-    function handleSignoutClick(event) {
-      window.gapi.auth2.getAuthInstance().signOut();
-    }
+  handleOpenModal = modal => {
+    this.setState({ [`class${modal}`]: "is-active" });
+  };
+  handleCloseModal = modal => {
+    this.setState({ [`class${modal}`]: "", [`data${modal}`]: "" });
+  };
 
-    /**
-     * Append a pre element to the body containing the given message
-     * as its text node. Used to display the results of the API call.
-     *
-     * @param {string} message Text to be placed in pre element.
-     */
-    function appendPre(message) {
-      var pre = document.getElementById("content");
-      var textContent = document.createTextNode(message + "\n");
-      pre.appendChild(textContent);
-    }
+  handleInputChange = (event, modal) => {
+    this.setState({ [`data${modal}`]: event.target.value });
+  };
 
-    /**
-     * Print files.
-     */
-    var listFiles = () => {
-      window.gapi.client.drive.files
-        .list({
-          pageSize: 10,
-          fields: "nextPageToken, files(id, name)"
-        })
-        .then(function(response) {
-          appendPre("Files:");
-          var files = response.result.files;
-          if (files && files.length > 0) {
-            for (var i = 0; i < files.length; i++) {
-              var file = files[i];
-              appendPre(file.name + " (" + file.id + ")");
-            }
-          } else {
-            appendPre("No files found.");
-          }
-        });
-      window.gapi.client.drive.files
-        .get({ fileId: "1FPeKddAkiiVhgX1-C3-2U1JOnux0C-F4PNcXoAbdlxw", fields: "*" })
-        .then(response => {
-          console.log(response);
-          
-
-          //console.log(response);
-          // this.setState({
-          //   url:
-          //     "https://lh3.google.com/0Gag73VHZTGFCtUSOdtCvoKl-x0Dbv71oGBOvjgeO8xeSoDmsE0ENmVmrexGDdErnZ3mSqrkd18vpchjj177hi8K0dwtDLhg=w320"
-          // });
-        });
-      //window.gapi.client.drive.files.get;
-    };
-    /**
-     *  On load, called to load the auth2 library and API client library.
-     */
-
-    console.log(window.CLIENT_ID);
-  }
+  //---end modal stuff and inputs---\\
 
   render() {
     return (
       <div className="App">
         <header>
           <img src={this.state.url} className="App-logo" alt="logo" />
-          <p>
-            Edit <code>saarc/App.js</code> and save to reload.
-          </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
-          <p>Drive API Quickstart</p>
 
-          <button id="authorize_button" style={{ display: "none" }}>
-            Authorize
+          <div
+            className={`g-sign-in-button ${this.state.authButtonClass}`}
+            onClick={() => {
+              this.handleAuthClick();
+            }}
+          >
+            <div className="content-wrapper">
+              <div className="logo-wrapper">
+                <img src="https://developers.google.com/identity/images/g-logo.png" />
+              </div>
+              <span className="text-container">
+                <span>Sign in with Google</span>
+              </span>
+            </div>
+          </div>
+          <div
+            className={`g-sign-in-button ${this.state.signOutButtonClass}`}
+            onClick={() => {
+              this.handleSignoutClick();
+            }}
+          >
+            <div className="content-wrapper">
+              <div className="logo-wrapper">
+                <img src="https://developers.google.com/identity/images/g-logo.png" />
+              </div>
+              <span className="text-container">
+                <span>Sign Out</span>
+              </span>
+            </div>
+          </div>
+          <img src={this.state.profilePicture} />
+          <div>{`Welcome back, ${this.state.profileName}`}</div>
+          <button
+            className=" button is-primary"
+            onClick={() => {
+              this.handleShareWorkspace();
+            }}
+          >
+            share current workspace
           </button>
-          <button id="signout_button" style={{ display: "none" }}>
-            Sign Out
+          <button
+            className="button is-primary"
+            onClick={() => {
+              this.handleOpenSheet();
+            }}
+          >
+            open spreadsheet
           </button>
+          <button
+            className=" button is-primary"
+            onClick={() => {
+              this.handleImportSheet();
+            }}
+          >
+            import sheet
+          </button>
+          <button
+            className=" button is-primary"
+            onClick={() => {
+              this.handleAddFile();
+            }}
+          >
+            add file
+          </button>
+          <HotTable
+            afterChange={change => {
+              this.handleSheetChange(change);
+            }}
+            data={this.state.data}
+            colHeaders={true}
+            rowHeaders={true}
+            width="600"
+            height="300"
+            colHeaders={this.state.data[0]}
+            settings={{
+              stretchH: "all",
+              width: 880,
+              autoWrapRow: true,
+              height: 487,
+
+              manualRowResize: true,
+              manualColumnResize: true,
+              rowHeaders: true,
+
+              manualRowMove: true,
+              manualColumnMove: true,
+              contextMenu: true,
+              filters: true,
+              dropdownMenu: true,
+              columnSorting: {
+                indicator: true
+              },
+              autoColumnSize: {
+                samplingRatio: 23
+              },
+              licenseKey: "non-commercial-and-evaluation"
+            }}
+          />
         </header>
+        <button
+          className="button is-link"
+          onClick={() => {
+            this.handleOpenModal("New");
+          }}
+        >
+          Create New
+        </button>
+        <div className={`modal ${this.state.classNew}`}>
+          <div className="modal-background" />
+          <div className="modal-card">
+            <header className="modal-card-head">
+              <p className="modal-card-title">New Workspace</p>
+              <button
+                className="delete"
+                aria-label="close"
+                onClick={() => {
+                  this.handleCloseModal("New");
+                }}
+              />
+            </header>
+            <section className="modal-card-body">
+              <input
+                className="input"
+                type="text"
+                placeholder="Name of Workspace"
+                value={this.state.dataNew}
+                onChange={event => {
+                  this.handleInputChange(event, "New");
+                }}
+              />
+            </section>
+            <footer className="modal-card-foot">
+              <button
+                className="button is-success"
+                onClick={() => {
+                  this.handleCloseModal("New");
+                  this.handleNewSheet();
+                }}
+              >
+                Create
+              </button>
+              <button
+                className="button"
+                onClick={() => {
+                  this.handleCloseModal("New");
+                }}
+              >
+                Cancel
+              </button>
+            </footer>
+          </div>
+        </div>
       </div>
     );
   }

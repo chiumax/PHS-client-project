@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@handsontable/react": "^3.0.0",
     "googleapis": "^39.2.0",
+    "handsontable": "^7.0.3",
     "load-script": "^1.0.0",
     "node-sass": "^4.12.0",
     "react": "^16.8.6",
