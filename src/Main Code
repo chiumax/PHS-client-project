@@ -1,7 +1,7 @@
 
+v
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var freeze=SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-//window.addEventListener('load', inputData, false)
 freeze.setFrozenRows(5);
 
 function addRow() {
@@ -21,21 +21,21 @@ function delRow(){
 }
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
+   ui.createMenu('File Picker')
+  .addItem('Choose File', 'showPicker')
+  .addToUi();
   ui.createMenu('Column Types')
+      .addItem('Add Column', 'singleCol')
       .addItem('Checkbox', 'checkBox')
       .addItem('Hyperlink', 'hyper')
       .addItem('Custom Dropdown', 'newDrop')
+      .addItem('Remove Dropdown', 'removeDrop')
       .addToUi();
   ui.createMenu('Data Input')
-  .addItem('Input Stud. Data', 'inputData')
-  .addItem('Add Column', 'singleCol')
+  .addItem('Student Data', 'inputData')
+  .addItem("Meeting Planner", "planInput")
   .addToUi();
-  ui.createMenu('File Picker')
-  .addItem('Choose File', 'chooseFile')
-  .addToUi();
-  ui.createMenu('Undo')
-  .addItem('Remove Dropdown', 'removeDrop')
-  .addToUi();
+ 
 }
 function hyper(){
   var single = '"';
@@ -139,28 +139,25 @@ function search(){
         numRows= numRows +1;
         check=true;
       }
-  }
-    
+    }
   }
 
       var tempCell = SpreadsheetApp.getActiveSheet().getRange(5, colIndex);
-      for (var i = 0; i<numRows;i=i+1){
+      for (var i = 0; i<=numRows;i=i+1){
         var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(tempCell.getRow()+i, colIndex).getValue();
         if (x.equals(input2)&&check==true){
           SpreadsheetApp.getActiveSheet().getRange(2, 11).setValue(spread.getActiveCell().getRow()+i).setHorizontalAlignment("center"); 
           var colLetter = (colIndex%26)+64;
           newStr = String.fromCharCode(colLetter);
-          SpreadsheetApp.getActiveSheet().getRange(2, 10).setValue(newStr).setHorizontalAlignment("center"); 
-          
-          
-          
-          
+          SpreadsheetApp.getActiveSheet().getRange(2, 10).setValue(newStr).setHorizontalAlignment("center");
                                                                
         }    
       
       }
- 
- }
+}
+
+
+
 
 
 function singleCol(){
@@ -182,8 +179,52 @@ function singleCol(){
   }
   
 }
-      
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function planInput(){
+  var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var count = 0;
+  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
+    count = count+1;
+  }
+  for(var r = 0; r<count;r=r+1){
+     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
+  var y = x.getValue();
+  var userInput = Browser.inputBox(y);
+  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
     
+  }  
+}
+
+
+
+ function showPicker() {
+  var html = HtmlService.createHtmlOutputFromFile('Test.html')
+      .setWidth(600)
+      .setHeight(425)
+      .setSandboxMode(HtmlService.SandboxMode.IFRAME);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Select a file');
+}
+
+
+function getOAuthToken() {
+  DriveApp.getRootFolder();
+  return ScriptApp.getOAuthToken();
+}
+
+
   
   
 
