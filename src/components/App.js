@@ -94,10 +94,11 @@ export default class App extends React.Component {
   //---begin new workspace functions---\\
   handleNewSheet = () => {
     //add sheet to current files
+    //1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI
     console.log("handling");
     window.gapi.client.drive.files
       .copy({
-        fileId: "1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI",
+        fileId: "1wbpFU5wAlMWbqmUD01esVJj6EHoFHq6OKs0ksLmz6Mw",
         fields: "*",
         resource: {
           name: this.state.dataNew
@@ -142,7 +143,7 @@ export default class App extends React.Component {
                   console.log(response);
                   this.setState(
                     prevState => ({
-                      currentFiles: [fileId, ...prevState.currentFiles],
+                      currentFiles: [fileId],
                       data: response.result.values
                     }),
                     () => {
@@ -206,11 +207,18 @@ export default class App extends React.Component {
     let ids = [];
     let head = this.state.data[0];
     let arr = this.state.verticalData;
-    for (let i = 0; i < head; i++) {
+    for (let i = 0; i < head.length; i++) {
+
       if (head[i].indexOf("http") != -1 && head[i].lastIndexOf("/") != -1) {
         let id = head[i].slice(head[i].lastIndexOf("/") + 1);
         ids.push(id);
+        console.log("yote")
+        console.log(id);
+
+        let template = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}"><img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`
+        row.push(template)
       } else {
+        console.log("yeet")
         row.push(head[i]);
       }
     }
@@ -233,7 +241,9 @@ export default class App extends React.Component {
         }
       }
     }
-    this.setState({ column: column, header: this.state.data[0] });
+    console.log("row")
+    console.log(row);
+    this.setState(prevState=>({ column: column, header: row, currentFiles: [...prevState.currentFiles,...ids] }));
     console.log(column);
   };
 
@@ -268,10 +278,13 @@ export default class App extends React.Component {
     console.log(response);
     if (this.state.selectedRow == 0 && response.action === window.google.picker.Action.PICKED) {
       var arr = this.state.data.slice();
+      var head = this.state.header.slice();
       var id = response.docs[0].id;
-      let str = `<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/>`;
-      arr[0][this.state.selectedColumn] = str;
-      this.setState(prevState => ({ data: arr }));
+      let str = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}"><img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`
+      let cell = `https://drive.google.com/file/d/${id}`
+      arr[0][this.state.selectedColumn] = cell;
+      head[this.state.selectedColumn]=str;
+      this.setState(prevState => ({ data: arr, header: head, currentFiles:[...prevState.currentFiles,id] }));
     }
   };
 
