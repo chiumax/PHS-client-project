@@ -144,7 +144,12 @@ export default class App extends React.Component {
   };
 
   handleSignoutClick = event => {
-    gapi.auth2.getAuthInstance().signOut();
+    this.setState({
+      currentFiles:[]
+    },()=>{
+      gapi.auth2.getAuthInstance().signOut();
+    })
+    
   };
   //---end setup---\\
 
@@ -370,7 +375,10 @@ export default class App extends React.Component {
   //Add file to Sheet
   handleAddFile = () => {
     console.log("handling");
-    this.openPicker("*", this.handleAddFileCallback);
+    if(this.state.selectedRow ==0){
+      this.openPicker("*", this.handleAddFileCallback);
+    }
+    
   };
 
   handleAddFileCallback = response => {
@@ -408,17 +416,20 @@ export default class App extends React.Component {
       var start = head[this.state.selectedColumn].indexOf("/d/") + 3;
       var end = head[this.state.selectedColumn].indexOf('"', start);
       console.log(head[this.state.selectedColumn]);
-      //var id = head[this.state.selectedColumn].toString().splice(start, end);
-      var id = "";
+      var id = head[this.state.selectedColumn].toString().slice(start, end);
+      
       console.log(head[this.state.selectedColumn].toString());
       arr[0][this.state.selectedColumn] = "Empty";
       head[this.state.selectedColumn] = "Empty"; //+4
+      console.log(files);
       files.splice(files.indexOf(id), 1);
+      console.log(files);
 
       this.setState(
         {
           data: arr,
-          header: head
+          header: head,
+          currentFiles: files
         },
         () => {
           console.log(this.state.currentFiles);
@@ -629,7 +640,8 @@ export default class App extends React.Component {
             </div>
           </div>
         </nav>
-
+        {this.state.authButtonClass=="buttonNone"?(this.state.currentFiles.length!=0?(
+        <div className={"App"}>
         <img src={this.state.profilePicture} />
         <div className={"title is-1"}>{`Welcome back, ${this.state.profileName}`}</div>
         <div className="columns">
@@ -755,7 +767,7 @@ export default class App extends React.Component {
               stretchH: "all",
               width: 880,
               autoWrapRow: true,
-              height: 487,
+              height: 200,
               manualRowResize: true,
               manualColumnResize: true,
               rowHeaders: true,
@@ -774,7 +786,29 @@ export default class App extends React.Component {
           />
         </header>
 
-        <div className={`modal ${this.state.classNew}`}>
+       
+        </div>
+        </div>):(<div className={""}><div className="column">
+            <button
+              className="button is-primary"
+              onClick={() => {
+                this.handleOpenSheet();
+              }}
+            >
+              open spreadsheet
+            </button>
+          </div>
+          <div className="column">
+            <button
+              className="button is-link"
+              onClick={() => {
+                this.handleOpenModal("New");
+              }}
+            >
+              Create New
+            </button>
+          </div></div><div>yer logged in! now just open or create a file</div>)):(<div>Log in to see yer stuff</div>)}
+         <div className={`modal ${this.state.classNew}`}>
           <div className="modal-background" />
           <div className="modal-card">
             <header className="modal-card-head">
@@ -908,7 +942,6 @@ export default class App extends React.Component {
               </button>
             </footer>
           </div>
-        </div>
       </div>
     );
   }
