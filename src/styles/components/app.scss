@@ -92,3 +92,12 @@
   text-align: center;
   width: 180px;
 }
+.restraint {
+  overflow-x: scroll;
+}
+.flexup {
+  display: flex;
+  flex-direction: column;
+  max-height: 100px;
+  overflow: hidden;
+}
