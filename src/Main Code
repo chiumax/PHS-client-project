@@ -1,12 +1,12 @@
 
-v
+
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var freeze=SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-freeze.setFrozenRows(5);
+freeze.setFrozenRows(5); //set frozen rows
 
 function addRow() {
  var add=SpreadsheetApp.getActiveRange().offset(0,0); 
-  add.setBorder(true, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
+  add.setBorder(true, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); //set to black border
   add.activate();
 }
 
@@ -14,7 +14,7 @@ function addRow() {
 function delRow(){
   
   var del=SpreadsheetApp.getActiveRange().offset(0,0); 
-  del.setBorder(true, true, true, true, true, true, "white", SpreadsheetApp.BorderStyle.SOLID); 
+  del.setBorder(true, true, true, true, true, true, "white", SpreadsheetApp.BorderStyle.SOLID); //back to white
   del.setValue("");
   del.setBackgroundRGB(255, 255, 255);
   del.activate();
@@ -22,14 +22,14 @@ function delRow(){
 function onOpen() {
   var ui = SpreadsheetApp.getUi();
    ui.createMenu('File Picker')
-  .addItem('Choose File', 'showPicker')
+  .addItem('Choose File', 'showPicker')//open all of the menus when the spreadsheet is opened
   .addToUi();
   ui.createMenu('Column Types')
       .addItem('Add Column', 'singleCol')
       .addItem('Checkbox', 'checkBox')
       .addItem('Hyperlink', 'hyper')
       .addItem('Custom Dropdown', 'newDrop')
-      .addItem('Remove Dropdown', 'removeDrop')
+      .addItem('Remove Dropdown', 'removeDrop')//column type menu
       .addToUi();
   ui.createMenu('Data Input')
   .addItem('Student Data', 'inputData')
@@ -42,11 +42,11 @@ function hyper(){
   var userInput = Browser.inputBox('Input the link');
   var cellRead = Browser.inputBox('On-screen display');
   var hyperLinkRange = SpreadsheetApp.getCurrentCell();
-  var temp = ss.getRange('AA20');
+  var temp = ss.getRange('AA20');//set the link to a cell that will not be used
   temp.setValue(userInput);
-  var temp2 = ss.getRange('AA21');
+  var temp2 = ss.getRange('AA21');//set display to cell that will not be used
   temp2.setValue(cellRead);
-  hyperLinkRange.setFormula('=HYPERLINK(AA20, AA21)');
+  hyperLinkRange.setFormula('=HYPERLINK(AA20, AA21)');//add hyperlink
  
 }
 function colHead(){
@@ -54,21 +54,30 @@ function colHead(){
   col.setBorder(false, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
   col.activate();
   col.setValue("Col Head");
-  col.setBackgroundRGB(135, 206, 250);
+  col.setBackgroundRGB(135, 206, 250);//color
     
   
 }
 function inputData(){
   var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var choices = spread.getActiveCell();
+  var choiceVal = choices.getValues();
+  
   var count = 0;
-  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
+  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){ //count columns
     count = count+1;
   }
   for(var r = 0; r<count;r=r+1){
      var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
-  var y = x.getValue();
-  var userInput = Browser.inputBox(y);
-  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
+  //make sure that there is no dropdown or checkbox
+    if (SpreadsheetApp.getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).getDataValidation()!= null){
+     var temp = 0;
+    }else{
+      var y = x.getValue();
+      var userInput = Browser.inputBox(y);//have dialog box
+      SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
+      
+    }
     
   }
  
@@ -78,11 +87,13 @@ function inputData(){
 
 
 function checkBox(){
+  //number or rows
   var spread = SpreadsheetApp.getActiveSpreadsheet();
   var numRows = 0;
   for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue()!== "";rows = rows+1){
     numRows= numRows +1;
   }
+  //make checkboxes
   var makeCheck = SpreadsheetApp.newDataValidation();
   makeCheck.requireCheckbox();
   makeCheck.setAllowInvalid(false);
@@ -99,10 +110,11 @@ function newDrop(){
   var choiceVal = choices.getValues();
   var initial = SpreadsheetApp.newDataValidation().requireValueInList(choiceVal);
   var numRows = 0;
+  //number of rows
 for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue() != "";rows = rows+1){
   numRows= numRows +1;
 }
-
+  //set the dropdown to each cell in row range
   
   for (var i = 0; i<numRows;i=i+1){
     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow()+i, spread.getActiveCell().getColumn());
@@ -114,23 +126,28 @@ for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue() !
 
 
 function removeDrop(){
+  //Logger.log(6);
+  //set the data input to regular text
   var spread = SpreadsheetApp.getActiveSpreadsheet();
   spread.getActiveSheet().getActiveRange().setDataValidation(null);
   spread.getActiveSheet().getActiveRange().setValue("");
 }  
 function search(){
+  //initial question
   var spread = SpreadsheetApp.getActiveSpreadsheet();
   var userInput = Browser.inputBox("What Column are you searching");
   var count = 0;
   var newStr = '';
-  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
+  //count columns starting at 1
+  for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,1+inc).getValue()!="";inc=inc+1){
     count = count+1;
   }
   var colIndex = 0
   var check = false;
+  //see if the column matches
   for(var r = 0; r<count &&check==false;r=r+1){
-     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
-    colIndex =spread.getActiveCell().getColumn()+r;
+     var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,1+r);
+    colIndex =1+r;
     if(userInput.equals(x.getValue())){
       
       var numRows = 0;
@@ -141,12 +158,12 @@ function search(){
       }
     }
   }
-
+      //count rows and then see if the 2nd input matches. Set colIndex and row to K2 and J2
       var tempCell = SpreadsheetApp.getActiveSheet().getRange(5, colIndex);
       for (var i = 0; i<=numRows;i=i+1){
         var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(tempCell.getRow()+i, colIndex).getValue();
         if (x.equals(input2)&&check==true){
-          SpreadsheetApp.getActiveSheet().getRange(2, 11).setValue(spread.getActiveCell().getRow()+i).setHorizontalAlignment("center"); 
+          SpreadsheetApp.getActiveSheet().getRange(2, 11).setValue(5+i).setHorizontalAlignment("center"); 
           var colLetter = (colIndex%26)+64;
           newStr = String.fromCharCode(colLetter);
           SpreadsheetApp.getActiveSheet().getRange(2, 10).setValue(newStr).setHorizontalAlignment("center");
@@ -162,6 +179,7 @@ function search(){
 
 function singleCol(){
   var numRows = 0;
+  //count rows
   for (var rows = 6; SpreadsheetApp.getActiveSheet().getRange(rows,1).getValue()!== "";rows = rows+1){
     numRows= numRows +1;
   }
@@ -171,6 +189,7 @@ function singleCol(){
   col.activate();
   col.setValue("Col Head");
   col.setBackgroundRGB(135, 206, 250);
+  //add cells for each cell in row
   for(var counter = 1;counter<=numRows;counter=counter+1){
     var changeCell = SpreadsheetApp.getActiveSheet().getRange(5+counter,spread.getActiveCell().getColumn() );
     changeCell.setBorder(true, true, true, true, true, true, "black", SpreadsheetApp.BorderStyle.SOLID); 
@@ -181,44 +200,56 @@ function singleCol(){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+//same input code as the regular one, but this is for meeting plan
 function planInput(){
   var spread = SpreadsheetApp.getActiveSpreadsheet();
+  var choices = spread.getActiveCell();
+  var choiceVal = choices.getValues();
+  
   var count = 0;
   for (var inc = 0;SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+inc).getValue()!="";inc=inc+1){
     count = count+1;
   }
   for(var r = 0; r<count;r=r+1){
      var x = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(5,spread.getActiveCell().getColumn()+r);
-  var y = x.getValue();
-  var userInput = Browser.inputBox(y);
-  SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
+  
+    if (SpreadsheetApp.getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).getDataValidation()!= null){
+     var temp = 0;
+    }else{
+      var y = x.getValue();
+      var userInput = Browser.inputBox(y);
+      SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange(spread.getActiveCell().getRow(), spread.getActiveCell().getColumn()+r).setValue(userInput);
+      
+    }
     
-  }  
+  }
 }
 
 
-
- function showPicker() {
+//Google drive picker
+ function showPicker(htmlInput) {
+  //SpreadsheetApp.getActiveSheet().getActiveRange().setValue(htmlInput);
+  var result = '';
   var html = HtmlService.createHtmlOutputFromFile('Test.html')
       .setWidth(600)
       .setHeight(425)
       .setSandboxMode(HtmlService.SandboxMode.IFRAME);
   SpreadsheetApp.getUi().showModalDialog(html, 'Select a file');
+  //SpreadsheetApp.getActiveSheet().getActiveCell().setValue(HTMLService.createHTMLOutput('result'))
+  
+}
+//print the URL
+function printFile(show,link){
+  var store1=SpreadsheetApp.getActiveSheet().getRange('AD22');//SET TO CELL NOT USED
+  store1.setValue(link);
+   var store2=SpreadsheetApp.getActiveSheet().getRange('AD23');
+  store2.setValue(show);
+  
+  SpreadsheetApp.getActiveRange().setFormula('=HYPERLINK(AD22, AD23)');
+  
 }
 
-
+//Authroize
 function getOAuthToken() {
   DriveApp.getRootFolder();
   return ScriptApp.getOAuthToken();
