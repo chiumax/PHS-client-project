@@ -2,6 +2,7 @@
 import React from "react";
 import { HotTable } from "@handsontable/react";
 import logo from "../media/logo.svg";
+import Calendar from "react-calendar";
 const gapi = window.gapi;
 
 export default class App extends React.Component {
@@ -17,7 +18,11 @@ export default class App extends React.Component {
     dataHead: "",
     selectedRow: "",
     selectedColumn: "",
-    data: undefined,
+    data: [],
+    date: new Date(),
+    x: "40%",
+    y: "40vh",
+    calClass: "calGone",
     header: [
       "A",
       "B",
@@ -144,12 +149,14 @@ export default class App extends React.Component {
   };
 
   handleSignoutClick = event => {
-    this.setState({
-      currentFiles:[]
-    },()=>{
-      gapi.auth2.getAuthInstance().signOut();
-    })
-    
+    this.setState(
+      {
+        currentFiles: []
+      },
+      () => {
+        gapi.auth2.getAuthInstance().signOut();
+      }
+    );
   };
   //---end setup---\\
 
@@ -158,9 +165,11 @@ export default class App extends React.Component {
     //add sheet to current files
     //1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI
     console.log("handling");
+
+    //19jsiHiwIITp2J1Mxum56oHMkumKQtTbG5WGQ72rrYv8
     window.gapi.client.drive.files
       .copy({
-        fileId: "1yb8eiVLdeyrzaUz3DzAcVLdf5Y2rfGcKYYadgAFU0Sw",
+        fileId: "19jsiHiwIITp2J1Mxum56oHMkumKQtTbG5WGQ72rrYv8",
         fields: "*",
         resource: {
           name: this.state.dataNew
@@ -327,7 +336,7 @@ export default class App extends React.Component {
         let temp = arr[i];
         temp.shift();
         let returnVar = this.handleUnique(temp);
-        if (Math.max(...returnVar[1]) > 3) {
+        if (Math.max(...returnVar[1]) > 5) {
           column.push({
             type: "dropdown",
             source: returnVar[0]
@@ -375,10 +384,9 @@ export default class App extends React.Component {
   //Add file to Sheet
   handleAddFile = () => {
     console.log("handling");
-    if(this.state.selectedRow ==0){
+    if (this.state.selectedRow == 0) {
       this.openPicker("*", this.handleAddFileCallback);
     }
-    
   };
 
   handleAddFileCallback = response => {
@@ -417,7 +425,7 @@ export default class App extends React.Component {
       var end = head[this.state.selectedColumn].indexOf('"', start);
       console.log(head[this.state.selectedColumn]);
       var id = head[this.state.selectedColumn].toString().slice(start, end);
-      
+
       console.log(head[this.state.selectedColumn].toString());
       arr[0][this.state.selectedColumn] = "Empty";
       head[this.state.selectedColumn] = "Empty"; //+4
@@ -546,12 +554,51 @@ export default class App extends React.Component {
 
   //---end modal stuff and inputs---\\
 
+  //---calendar stuff---\\
+  calendarOnChange = date => {
+    var arr = this.state.data.slice();
+    arr[this.state.selectedRow + 1][this.state.selectedColumn] = `${date.getMonth() +
+      1}/${date.getDate()}/${date.getFullYear()}`;
+    this.setState({ date: date, calClass: "calGone", data: arr });
+  };
+  openCalendar = () => {
+    console.log("calendar open");
+    this.setState({ calClass: "" });
+  };
+  mousePosition = e => {
+    // if (this.state.calClass != "") {
+    //   this.setState({
+    //     x: e.screenX,
+    //     y: e.screenY
+    //   });
+    // }
+    console.log(e.screenX, e.screenY);
+  };
+  //---end calendar stuff---\\
+
   render() {
     return (
-      <div className="App">
+      <div
+        className="App"
+        onClick={e => {
+          this.mousePosition(e);
+        }}
+      >
+        <div
+          className={`cal ${this.state.calClass}`}
+          style={{ top: this.state.y, left: this.state.x }}
+        >
+          <Calendar
+            onChange={date => {
+              console.log(date.getFullYear());
+              this.calendarOnChange(date);
+            }}
+            value={this.state.date}
+          />
+        </div>
         <nav className="navbar is-transparent">
           <div className="navbar-brand">
-            <a className="navbar-item" href="https://bulma.io">
+            <a className="navbar-item" href="">
               Student Data Organization
             </a>
             <div className="navbar-burger burger" data-target="navbarExampleTransparentExample">
@@ -563,44 +610,25 @@ export default class App extends React.Component {
 
           <div id="navbarExampleTransparentExample" className="navbar-menu">
             <div className="navbar-start">
-              <a className="navbar-item" href="https://bulma.io/">
+              <a className="navbar-item" href="">
                 Home
               </a>
               <div className="navbar-item has-dropdown is-hoverable">
-                <a className="navbar-link" href="https://bulma.io/documentation/overview/start/">
+                <a className="navbar-link" href="">
                   Docs
                 </a>
                 <div className="navbar-dropdown is-boxed">
-                  <a className="navbar-item" href="https://bulma.io/documentation/overview/start/">
+                  <a className="navbar-item" href="">
                     Overview
                   </a>
-                  <a
-                    className="navbar-item"
-                    href="https://bulma.io/documentation/modifiers/syntax/"
-                  >
-                    Modifiers
+                  <a className="navbar-item" href="">
+                    Logging In
                   </a>
-                  <a className="navbar-item" href="https://bulma.io/documentation/columns/basics/">
-                    Columns
+                  <a className="navbar-item" href="">
+                    Features
                   </a>
-                  <a
-                    className="navbar-item"
-                    href="https://bulma.io/documentation/layout/container/"
-                  >
-                    Layout
-                  </a>
-                  <a className="navbar-item" href="https://bulma.io/documentation/form/general/">
-                    Form
-                  </a>
-                  <hr className="navbar-divider" />
-                  <a className="navbar-item" href="https://bulma.io/documentation/elements/box/">
-                    Elements
-                  </a>
-                  <a
-                    className="navbar-item is-active"
-                    href="https://bulma.io/documentation/components/breadcrumb/"
-                  >
-                    Components
+                  <a className="navbar-item" href="">
+                    Errors
                   </a>
                 </div>
               </div>
@@ -640,175 +668,206 @@ export default class App extends React.Component {
             </div>
           </div>
         </nav>
-        {this.state.authButtonClass=="buttonNone"?(this.state.currentFiles.length!=0?(
-        <div className={"App"}>
-        <img src={this.state.profilePicture} />
-        <div className={"title is-1"}>{`Welcome back, ${this.state.profileName}`}</div>
-        <div className="columns">
-          <div className="column">
-            <button
-              className=" button is-primary"
-              onClick={() => {
-                this.handleShareWorkspace();
-              }}
-            >
-              share current workspace
-            </button>
-          </div>
-          <div className="column">
-            <button
-              className="button is-primary"
-              onClick={() => {
-                this.handleOpenSheet();
-              }}
-            >
-              open spreadsheet
-            </button>
-          </div>
-          <div className="column">
-            <button
-              className="button is-link"
-              onClick={() => {
-                this.handleOpenModal("New");
-              }}
-            >
-              Create New
-            </button>
-          </div>
-          <div className="column">
-            <button
-              className=" button is-primary"
-              onClick={() => {
-                this.handleImportSheet();
-              }}
-            >
-              import sheet
-            </button>
-          </div>
-          <div className="column">
-            <button
-              className=" button is-primary"
-              onClick={() => {
-                this.handleAddFile();
-              }}
-            >
-              add file
-            </button>
-          </div>
-          <div className="column">
-            <button
-              className=" button is-primary"
-              onClick={() => {
-                this.handleRemoveFile();
-              }}
-            >
-              Remove File
-            </button>
-          </div>
-        </div>
+        {this.state.authButtonClass == "buttonNone" ? (
+          this.state.currentFiles.length != 0 ? (
+            <div className={"App"}>
+              <img src={this.state.profilePicture} />
+              <div className={"title is-1"}>{`Welcome back, ${this.state.profileName}`}</div>
+              <div className="columns">
+                <div className="column">
+                  <button
+                    className=" button is-primary"
+                    onClick={() => {
+                      this.handleShareWorkspace();
+                    }}
+                  >
+                    share current workspace
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className="button is-primary"
+                    onClick={() => {
+                      this.handleOpenSheet();
+                    }}
+                  >
+                    open spreadsheet
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className="button is-link"
+                    onClick={() => {
+                      this.handleOpenModal("New");
+                    }}
+                  >
+                    Create New
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className=" button is-primary"
+                    onClick={() => {
+                      this.handleImportSheet();
+                    }}
+                  >
+                    import sheet
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className=" button is-primary"
+                    onClick={() => {
+                      this.handleAddFile();
+                    }}
+                  >
+                    add file
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className=" button is-primary"
+                    onClick={() => {
+                      this.handleRemoveFile();
+                    }}
+                  >
+                    Remove File
+                  </button>
+                </div>
+              </div>
 
-        <header className={"container restraint"}>
-          <HotTable
-            afterChange={change => {
-              this.handleSheetChange(change);
-            }}
-            afterSelection={(r, c) => {
-              this.handleSheetSelection(r, c);
-            }}
-            dropdownMenu={{
-              callback: function(key, selection, clickEvent) {
-                // Common callback for all options
-                console.log(key, selection, clickEvent);
-              },
-              items: {
-                clear_format: {
-                  name: "Clear Formatting",
-                  callback: (key, selection, clickEvent) => {
-                    let arr = this.state.columns;
-                    arr[selection[0].start.toObject().col] = {};
-                    this.setState({ columns: arr });
-                  }
-                },
-                checkbox: {
-                  name: "Add Checkboxes",
-                  callback: (key, selection, clickEvent) => {
-                    // Callback for specific option
-                    console.log(selection[0].start.toObject().col);
-                    let arr = this.state.columns;
-                    arr[selection[0].start.toObject().col] = {
-                      type: "checkbox"
-                    };
-                    this.setState({ columns: arr });
-                  }
-                },
-                dropdown: {
-                  name: "Add Dropdown",
-                  callback: (key, selection, clickEvent) => {
-                    this.handleOpenModal("Drop");
-                  }
-                },
+              <header
+                className={"container restraint"}
+                onClick={e => {
+                  this.mousePosition(e);
+                }}
+              >
+                <HotTable
+                  afterChange={change => {
+                    this.handleSheetChange(change);
+                  }}
+                  afterSelection={(r, c) => {
+                    this.handleSheetSelection(r, c);
+                  }}
+                  contextMenu={{
+                    callback: function(key, selection, clickEvent) {
+                      // Common callback for all options
+                      console.log(key, selection, clickEvent);
+                    },
+                    items: {
+                      add_date: {
+                        name: "Add Date",
+                        callback: (key, selection, clickEvent) => {
+                          this.openCalendar();
+                        }
+                      },
+                      row_above: {},
+                      row_below: {},
+                      column_left: { name: "Insert Column Left" },
+                      column_right: { name: "Insert Column Right" }
+                    }
+                  }}
+                  dropdownMenu={{
+                    callback: function(key, selection, clickEvent) {
+                      // Common callback for all options
+                      console.log(key, selection, clickEvent);
+                    },
+                    items: {
+                      clear_format: {
+                        name: "Clear Formatting",
+                        callback: (key, selection, clickEvent) => {
+                          let arr = this.state.columns;
+                          arr[selection[0].start.toObject().col] = {};
+                          this.setState({ columns: arr });
+                        }
+                      },
+                      checkbox: {
+                        name: "Add Checkboxes",
+                        callback: (key, selection, clickEvent) => {
+                          // Callback for specific option
+                          console.log(selection[0].start.toObject().col);
+                          let arr = this.state.columns;
+                          arr[selection[0].start.toObject().col] = {
+                            type: "checkbox"
+                          };
+                          this.setState({ columns: arr });
+                        }
+                      },
+                      dropdown: {
+                        name: "Add Dropdown",
+                        callback: (key, selection, clickEvent) => {
+                          this.handleOpenModal("Drop");
+                        }
+                      },
 
-                change_heading: {
-                  name: "Change Heading Name",
-                  callback: (key, selection, clickEvent) => {
-                    this.handleOpenModal("Head");
-                  }
-                }
-              }
-            }}
-            data={this.state.data == undefined ? undefined : this.state.data.slice(1)}
-            colHeaders={true}
-            rowHeaders={true}
-            width="6000"
-            columns={this.state.columns}
-            height="700"
-            colHeaders={this.state.header}
-            settings={{
-              stretchH: "all",
-              width: 880,
-              autoWrapRow: true,
-              height: 200,
-              manualRowResize: true,
-              manualColumnResize: true,
-              rowHeaders: true,
-              manualRowMove: true,
-              manualColumnMove: true,
-              contextMenu: true,
-              startRows: 50,
-              startCols: 26,
-              allowInsertColumn: true,
+                      change_heading: {
+                        name: "Change Heading Name",
+                        callback: (key, selection, clickEvent) => {
+                          this.handleOpenModal("Head");
+                        }
+                      }
+                    }
+                  }}
+                  data={this.state.data.slice(1)}
+                  colHeaders={true}
+                  rowHeaders={true}
+                  width="6000"
+                  columns={this.state.columns}
+                  height="700"
+                  colHeaders={this.state.header}
+                  settings={{
+                    width: 880,
+                    autoWrapRow: true,
+                    height: 200,
+                    manualRowResize: true,
+                    manualColumnResize: true,
+                    rowHeaders: true,
+                    manualRowMove: true,
+                    manualColumnMove: true,
 
-              autoColumnSize: {
-                samplingRatio: 23
-              },
-              licenseKey: "non-commercial-and-evaluation"
-            }}
-          />
-        </header>
-
-       
-        </div>
-        </div>):(<div className={""}><div className="column">
-            <button
-              className="button is-primary"
-              onClick={() => {
-                this.handleOpenSheet();
-              }}
-            >
-              open spreadsheet
-            </button>
+                    startRows: 50,
+                    startCols: 26,
+                    colWidths: "100px",
+                    autoColumnSize: {
+                      samplingRatio: 23
+                    },
+                    licenseKey: "non-commercial-and-evaluation"
+                  }}
+                />
+              </header>
+            </div>
+          ) : (
+            <div className="columns">
+              <div className="column">
+                <button
+                  className="button is-primary"
+                  onClick={() => {
+                    this.handleOpenSheet();
+                  }}
+                >
+                  open spreadsheet
+                </button>
+              </div>
+              <div className="column">
+                <button
+                  className="button is-link"
+                  onClick={() => {
+                    this.handleOpenModal("New");
+                  }}
+                >
+                  Create New
+                </button>
+              </div>
+            </div>
+          )
+        ) : (
+          <div className="App">
+            <div className={"title is-1"}>Hello!</div>
+            <div className={"title is-2"}>👋</div>
+            <div className={"title is-2"}>Log in with your google account to start.</div>
           </div>
-          <div className="column">
-            <button
-              className="button is-link"
-              onClick={() => {
-                this.handleOpenModal("New");
-              }}
-            >
-              Create New
-            </button>
-          </div></div><div>yer logged in! now just open or create a file</div>)):(<div>Log in to see yer stuff</div>)}
-         <div className={`modal ${this.state.classNew}`}>
+        )}
+        <div className={`modal ${this.state.classNew}`}>
           <div className="modal-background" />
           <div className="modal-card">
             <header className="modal-card-head">
@@ -942,6 +1001,7 @@ export default class App extends React.Component {
               </button>
             </footer>
           </div>
+        </div>
       </div>
     );
   }
