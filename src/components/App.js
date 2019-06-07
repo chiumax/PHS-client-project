@@ -132,7 +132,6 @@ export default class App extends React.Component {
         profilePicture: user.getBasicProfile().getImageUrl(),
         profileName: user.getBasicProfile().getName()
       });
-      console.log("oauth: " + this.state.oauthToken);
     } else {
       this.setState({
         authButtonClass: "buttonBlock",
@@ -164,50 +163,20 @@ export default class App extends React.Component {
   handleNewSheet = () => {
     //add sheet to current files
     //1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI
-    console.log("handling");
 
     //19jsiHiwIITp2J1Mxum56oHMkumKQtTbG5WGQ72rrYv8
     window.gapi.client.drive.files
       .copy({
-        fileId: "19jsiHiwIITp2J1Mxum56oHMkumKQtTbG5WGQ72rrYv8",
+        fileId: "1WvzRzUM8Wq295r29kXJaToYmOpO1gmHU-hhk4gpF02c",
         fields: "*",
         resource: {
           name: this.state.dataNew
         }
       })
       .then(response => {
-        this.setState({ currentFiles: [response.result.id] });
-        gapi.client.sheets.spreadsheets.values
-          .get({ spreadsheetId: response.result.id, range: "Sheet1", majorDimension: "COLUMNS" })
-          .then(response => {
-            console.log(response);
-            this.setState({ verticalData: response.result.values }, () => {
-              gapi.client.sheets.spreadsheets.values
-                .get({ spreadsheetId: this.state.currentFiles[0], range: "Sheet1" })
-                .then(
-                  response => {
-                    console.log("HWAT");
-                    console.log(response);
-                    this.setState(
-                      {
-                        data: response.result.values
-                      },
-                      () => {
-                        console.log("data");
-                        console.log(this.state.currentFiles);
-                        console.log(this.state.data);
-                        this.handleDataParse();
-                      }
-                    );
-                  },
-                  err => {
-                    console.log(err);
-                  }
-                );
-            });
-          });
-
+        console.log("copied");
         console.log(response);
+        this.handleGetData(response.result.id);
       });
   };
 
@@ -217,91 +186,45 @@ export default class App extends React.Component {
 
   //Opens existing workspace
   handleOpenSheet = () => {
-    console.log("handling");
     this.openPicker("application/vnd.google-apps.spreadsheet", this.handleOpenSheetCallback);
   };
 
   handleOpenSheetCallback = response => {
-    console.log(response);
     if (response.action === window.google.picker.Action.PICKED) {
       const fileId = response.docs[0].id;
-      console.log(fileId);
-      //get columns
-      gapi.client.sheets.spreadsheets.values
-        .get({ spreadsheetId: fileId, range: "Sheet1", majorDimension: "COLUMNS" })
-        .then(
-          response => {
-            this.setState({ verticalData: response.result.values }, () => {
-              //get rows
-              gapi.client.sheets.spreadsheets.values
-                .get({ spreadsheetId: fileId, range: "Sheet1" })
-                .then(response => {
-                  console.log("pls respond");
-                  console.log(response);
-                  this.setState(
-                    prevState => ({
-                      currentFiles: [fileId],
-                      data: response.result.values
-                    }),
-                    () => {
-                      console.log("data?");
-                      console.log(this.state.data);
-                      this.handleDataParse();
-                    }
-                  );
-                });
-            });
-          },
-          error => {
-            console.log(error);
-          }
-        );
+      this.handleGetData(fileId);
     }
   };
 
-  //Import sheet data. !Overwrites current data in sheet!
-  handleImportSheet = () => {
-    console.log("handling");
-    this.openPicker("application/vnd.google-apps.spreadsheet", this.handleImportSheetCallback);
-  };
-
-  handleImportSheetCallback = response => {
-    if (response.action === window.google.picker.Action.PICKED) {
-      const fileId = response.docs[0].id;
-      console.log(fileId);
-      //get columns
-      gapi.client.sheets.spreadsheets.values
-        .get({ spreadsheetId: fileId, range: "Sheet1", majorDimension: "COLUMNS" })
-        .then(response => {
-          this.setState({ verticalData: response.result.values }, () => {
-            //get rows
-            gapi.client.sheets.spreadsheets.values
-              .get({ spreadsheetId: fileId, range: "Sheet1" })
-              .then(response => {
-                console.log(response);
+  handleGetData = fileId => {
+    gapi.client.sheets.spreadsheets.values
+      .get({ spreadsheetId: fileId, range: "Sheet1", majorDimension: "COLUMNS" })
+      .then(response => {
+        this.setState({ verticalData: response.result.values }, () => {
+          gapi.client.sheets.spreadsheets.values
+            .get({ spreadsheetId: fileId, range: "Sheet1" })
+            .then(
+              response => {
                 this.setState(
-                  prevState => ({
+                  {
+                    currentFiles: [fileId],
                     data: response.result.values
-                  }),
+                  },
                   () => {
-                    this.handleSheetChange("Import file");
-                    console.log(this.state.data);
                     this.handleDataParse();
                   }
                 );
-              });
-          });
+              },
+              err => {
+                console.log(err);
+              }
+            );
         });
-    }
+      });
   };
-
   handleDataParse = () => {
-    console.log(this.state.verticalData);
-    // check if checkbox or dropdown
     let column = [];
-    //header
     let row = [];
-    //file ids to share
     let ids = [];
     let head = this.state.data[0];
     let arr = this.state.verticalData;
@@ -309,21 +232,17 @@ export default class App extends React.Component {
       if (head[i].indexOf("http") != -1 && head[i].lastIndexOf("/") != -1) {
         let id = head[i].slice(head[i].lastIndexOf("/") + 1);
         ids.push(id);
-        console.log("yote");
-        console.log(id);
         gapi.client.drive.files
           .get({
             fileId: id
           })
           .then(response => {
-            console.log(response);
             let template = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}" class="flexup">${
               response.result.name
             }<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`;
             row.push(template);
           });
       } else {
-        console.log("yeet");
         row.push(head[i]);
       }
     }
@@ -346,19 +265,14 @@ export default class App extends React.Component {
         }
       }
     }
-    console.log("row");
-    console.log(row);
     this.setState(
       prevState => ({
         columns: column,
         header: row,
         currentFiles: [...prevState.currentFiles, ...ids]
       }),
-      () => {
-        console.log(this.state.currentFiles);
-      }
+      () => {}
     );
-    console.log(column);
   };
 
   //Given an array, returns an ordered list with unique vars and their corresponding frequencies
@@ -383,7 +297,6 @@ export default class App extends React.Component {
 
   //Add file to Sheet
   handleAddFile = () => {
-    console.log("handling");
     if (this.state.selectedRow == 0) {
       this.openPicker("*", this.handleAddFileCallback);
     }
@@ -391,11 +304,11 @@ export default class App extends React.Component {
 
   handleAddFileCallback = response => {
     //add file to current files
-    console.log(response);
     if (this.state.selectedRow == 0 && response.action === window.google.picker.Action.PICKED) {
       var arr = this.state.data.slice();
       var head = this.state.header.slice();
       var id = response.docs[0].id;
+      console.log(id);
       let str = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}" class="flexup">${
         response.docs[0].name
       }<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`;
@@ -408,9 +321,7 @@ export default class App extends React.Component {
           header: head,
           currentFiles: [...prevState.currentFiles, id]
         }),
-        () => {
-          console.log(this.state.currentFiles);
-        }
+        () => {}
       );
     }
   };
@@ -423,15 +334,11 @@ export default class App extends React.Component {
 
       var start = head[this.state.selectedColumn].indexOf("/d/") + 3;
       var end = head[this.state.selectedColumn].indexOf('"', start);
-      console.log(head[this.state.selectedColumn]);
       var id = head[this.state.selectedColumn].toString().slice(start, end);
 
-      console.log(head[this.state.selectedColumn].toString());
       arr[0][this.state.selectedColumn] = "Empty";
       head[this.state.selectedColumn] = "Empty"; //+4
-      console.log(files);
       files.splice(files.indexOf(id), 1);
-      console.log(files);
 
       this.setState(
         {
@@ -439,9 +346,7 @@ export default class App extends React.Component {
           header: head,
           currentFiles: files
         },
-        () => {
-          console.log(this.state.currentFiles);
-        }
+        () => {}
       );
     }
   };
@@ -470,9 +375,7 @@ export default class App extends React.Component {
 
   //---share functions---\\
   handleShareWorkspace = () => {
-    console.log(this.state.currentFiles);
     if (this.state.currentFiles.length >= 1) {
-      console.log("handling");
       this.openShare();
     }
   };
@@ -490,10 +393,7 @@ export default class App extends React.Component {
 
   handleSheetChange = response => {
     //for (let i = 0; i < response.length; i++) {}
-    console.log(response);
-    console.log(this.state.data);
     if (this.state.currentFiles.length >= 1) {
-      console.log(this.state.currentFiles[0]);
       gapi.client.sheets.spreadsheets.values
         .update({
           spreadsheetId: this.state.currentFiles[0],
@@ -502,9 +402,7 @@ export default class App extends React.Component {
           valueInputOption: "USER_ENTERED"
         })
         .then(
-          response => {
-            console.log(response);
-          },
+          response => {},
           error => {
             console.log(error);
           }
@@ -513,7 +411,6 @@ export default class App extends React.Component {
   };
 
   handleSheetSelection = (r, c) => {
-    console.log(r, c);
     this.setState({
       selectedRow: r,
       selectedColumn: c
@@ -562,7 +459,6 @@ export default class App extends React.Component {
     this.setState({ date: date, calClass: "calGone", data: arr });
   };
   openCalendar = () => {
-    console.log("calendar open");
     this.setState({ calClass: "" });
   };
   mousePosition = e => {
@@ -572,7 +468,6 @@ export default class App extends React.Component {
     //     y: e.screenY
     //   });
     // }
-    console.log(e.screenX, e.screenY);
   };
   //---end calendar stuff---\\
 
@@ -590,7 +485,6 @@ export default class App extends React.Component {
         >
           <Calendar
             onChange={date => {
-              console.log(date.getFullYear());
               this.calendarOnChange(date);
             }}
             value={this.state.date}
@@ -704,16 +598,7 @@ export default class App extends React.Component {
                     Create New
                   </button>
                 </div>
-                <div className="column">
-                  <button
-                    className=" button is-primary"
-                    onClick={() => {
-                      this.handleImportSheet();
-                    }}
-                  >
-                    import sheet
-                  </button>
-                </div>
+
                 <div className="column">
                   <button
                     className=" button is-primary"
@@ -752,7 +637,6 @@ export default class App extends React.Component {
                   contextMenu={{
                     callback: function(key, selection, clickEvent) {
                       // Common callback for all options
-                      console.log(key, selection, clickEvent);
                     },
                     items: {
                       add_date: {
@@ -770,7 +654,6 @@ export default class App extends React.Component {
                   dropdownMenu={{
                     callback: function(key, selection, clickEvent) {
                       // Common callback for all options
-                      console.log(key, selection, clickEvent);
                     },
                     items: {
                       clear_format: {
@@ -785,7 +668,6 @@ export default class App extends React.Component {
                         name: "Add Checkboxes",
                         callback: (key, selection, clickEvent) => {
                           // Callback for specific option
-                          console.log(selection[0].start.toObject().col);
                           let arr = this.state.columns;
                           arr[selection[0].start.toObject().col] = {
                             type: "checkbox"
