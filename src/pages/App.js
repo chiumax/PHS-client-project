@@ -10,6 +10,7 @@ export default class App extends React.Component {
     url: "",
     profilePicture: "",
     profileName: "",
+    sharedPeople: "",
     classNew: "",
     dataNew: "",
     classDrop: "",
@@ -18,6 +19,8 @@ export default class App extends React.Component {
     dataHead: "",
     selectedRow: "",
     selectedColumn: "",
+    settings: {},
+    sheetSettings: {},
     data: [],
     date: new Date(),
     x: "40%",
@@ -81,18 +84,15 @@ export default class App extends React.Component {
     authButtonClass: "buttonNone",
     signOutButtonClass: "buttonNone",
     oauthToken: undefined,
+    burger: "",
     currentFiles: [],
-    libraries: "client:auth2:picker:drive-share",
-    developerKey: "AIzaSyCVdNsIFlZ64SBTXLGzOokjqOJX0rH4z2o",
-    appId: "527405108362",
+    libraries: window.credentials.libraries,
+    developerKey: window.credentials.developerKey,
+    appId: window.credentials.appId,
     CLIENT_ID: window.credentials.clientID,
     API_KEY: window.credentials.apiKey,
-    DISCOVERY_DOCS: [
-      "https://www.googleapis.com/discovery/v1/apis/drive/v3/rest",
-      "https://sheets.googleapis.com/$discovery/rest?version=v4"
-    ],
-    SCOPES:
-      "https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.appfolder https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive.metadata https://www.googleapis.com/auth/drive.metadata.readonly https://www.googleapis.com/auth/drive.scripts https://www.googleapis.com/auth/drive.apps.readonly"
+    DISCOVERY_DOCS: window.credentials.DISCOVERY_DOCS,
+    SCOPES: window.credentials.SCOPES
   };
 
   //---start setup---\\
@@ -115,6 +115,7 @@ export default class App extends React.Component {
         () => {
           gapi.auth2.getAuthInstance().isSignedIn.listen(this.updateSigninStatus);
           this.updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+          this.handleUpdateSheet();
         },
         error => {
           console.log(error);
@@ -165,19 +166,43 @@ export default class App extends React.Component {
     //1XSgNsTb2Bk5TTWcTfRyIv60_qw4UVHmQRPypak7WNoI
 
     //19jsiHiwIITp2J1Mxum56oHMkumKQtTbG5WGQ72rrYv8
-    window.gapi.client.drive.files
-      .copy({
-        fileId: "1WvzRzUM8Wq295r29kXJaToYmOpO1gmHU-hhk4gpF02c",
-        fields: "*",
-        resource: {
-          name: this.state.dataNew
-        }
-      })
-      .then(response => {
-        console.log("copied");
-        console.log(response);
-        this.handleGetData(response.result.id);
-      });
+    var name = this.state.dataNew;
+    gapi.client.sheets.spreadsheets.create({}).then(response => {
+      var id = response.result.spreadsheetId;
+      console.log(response);
+      console.log(this.state.dataNew);
+      gapi.client.drive.files
+        .update({
+          fileId: response.result.spreadsheetId,
+          resource: { name: name }
+        })
+        .then(response => {
+          console.log(response);
+        });
+      gapi.client.sheets.spreadsheets.values
+        .update({
+          spreadsheetId: response.result.spreadsheetId,
+          range: "Y49",
+          values: [["."]],
+          valueInputOption: "USER_ENTERED"
+        })
+        .then(() => {
+          this.handleGetData(id);
+        });
+    });
+    // window.gapi.client.drive.files
+    //   .copy({
+    //     fileId: "1WvzRzUM8Wq295r29kXJaToYmOpO1gmHU-hhk4gpF02c",
+    //     fields: "*",
+    //     resource: {
+    //       name: this.state.dataNew
+    //     }
+    //   })
+    //   .then(response => {
+    //     console.log("copied");
+    //     console.log(response);
+    //     this.handleGetData(response.result.id);
+    //   });
   };
 
   //---end new workspace functions---\\
@@ -185,6 +210,13 @@ export default class App extends React.Component {
   //---begin picker functions---\\
 
   //Opens existing workspace
+
+  handleUpdateSheet = () => {
+    if (this.state.currentFiles.length != 0) {
+      this.handleGetData(this.state.currentFiles[0]);
+    }
+    setTimeout(this.handleUpdateSheet, 10000);
+  };
   handleOpenSheet = () => {
     this.openPicker("application/vnd.google-apps.spreadsheet", this.handleOpenSheetCallback);
   };
@@ -192,7 +224,16 @@ export default class App extends React.Component {
   handleOpenSheetCallback = response => {
     if (response.action === window.google.picker.Action.PICKED) {
       const fileId = response.docs[0].id;
-      this.handleGetData(fileId);
+      gapi.client.sheets.spreadsheets.values
+        .update({
+          spreadsheetId: fileId,
+          range: "Y49",
+          values: [["."]],
+          valueInputOption: "USER_ENTERED"
+        })
+        .then(() => {
+          this.handleGetData(fileId);
+        });
     }
   };
 
@@ -205,13 +246,28 @@ export default class App extends React.Component {
             .get({ spreadsheetId: fileId, range: "Sheet1" })
             .then(
               response => {
+                console.log(response);
                 this.setState(
                   {
                     currentFiles: [fileId],
                     data: response.result.values
                   },
                   () => {
-                    this.handleDataParse();
+                    gapi.client.drive.files
+                      .get({
+                        fileId: this.state.currentFiles[0],
+                        fields: "*"
+                      })
+                      .then(response => {
+                        let people = response.result.permissions;
+                        people = people.map(elm => {
+                          return elm.emailAddress;
+                        });
+                        console.log(people);
+                        this.setState({ sharedPeople: people }, () => {
+                          this.handleDataParse();
+                        });
+                      });
                   }
                 );
               },
@@ -227,21 +283,25 @@ export default class App extends React.Component {
     let row = [];
     let ids = [];
     let head = this.state.data[0];
+    try {
+      console.log(JSON.parse(this.state.data[0][0]));
+    } catch (err) {
+      console.log(err);
+    }
+
     let arr = this.state.verticalData;
+    var j = 0;
     for (let i = 0; i < head.length; i++) {
-      if (head[i].indexOf("http") != -1 && head[i].lastIndexOf("/") != -1) {
-        let id = head[i].slice(head[i].lastIndexOf("/") + 1);
+      if (head[i].indexOf("link") != -1) {
+        let items = head[i].split(" ");
+        let id = items[2];
         ids.push(id);
-        gapi.client.drive.files
-          .get({
-            fileId: id
-          })
-          .then(response => {
-            let template = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}" class="flexup">${
-              response.result.name
-            }<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`;
-            row.push(template);
-          });
+
+        let template = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}" class="flexup">${
+          items[1]
+        }<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`;
+
+        row.push(template);
       } else {
         row.push(head[i]);
       }
@@ -308,12 +368,25 @@ export default class App extends React.Component {
       var arr = this.state.data.slice();
       var head = this.state.header.slice();
       var id = response.docs[0].id;
+      setTimeout(() => {
+        for (let i = 0; i < this.state.sharedPeople.length; i++) {
+          gapi.client.drive.permissions
+            .create({
+              fileId: id,
+              resource: { role: "writer", type: "user", emailAddress: this.state.sharedPeople[i] }
+            })
+            .then(response => {
+              console.log(response);
+            });
+        }
+      }, 20000);
+
       console.log(id);
       let str = `<a target="_blank" rel="noopener noreferrer" href="https://drive.google.com/file/d/${id}" class="flexup">${
         response.docs[0].name
       }<img src="https://drive.google.com/thumbnail?authuser=0&sz=w320&id=${id}"/></a>`;
       let cell = `https://drive.google.com/file/d/${id}`;
-      arr[0][this.state.selectedColumn] = cell;
+      arr[0][this.state.selectedColumn] = "link " + response.docs[0].name + " " + id;
       head[this.state.selectedColumn] = str;
       this.setState(
         prevState => ({
@@ -385,6 +458,16 @@ export default class App extends React.Component {
     s.setOAuthToken(this.state.oauthToken);
     s.setItemIds(this.state.currentFiles);
     s.showSettingsDialog();
+    // gapi.client.drive.permissions.list({ fileId: id, fields: "*" }).then(response => {
+    //   for (let i = 0; i < response.permissions; i++) {
+    //     if (permissions[i].role != "owner") {
+    //       gapi.client.drive.permissions.update({
+    //         fileId: id,
+    //         resource: { role: "writer", type: "user", emailAddress: this.state.sharedPeople[i] }
+    //       });
+    //     }
+    //   }
+    // });
   };
 
   //---end share functions---\\
@@ -393,6 +476,7 @@ export default class App extends React.Component {
 
   handleSheetChange = response => {
     //for (let i = 0; i < response.length; i++) {}
+
     if (this.state.currentFiles.length >= 1) {
       gapi.client.sheets.spreadsheets.values
         .update({
@@ -446,13 +530,17 @@ export default class App extends React.Component {
   };
 
   handleInputChange = (event, modal) => {
-    this.setState({ [`data${modal}`]: event.target.value });
+    this.setState({ [`data${modal}`]: event.target.value }, () => {
+      console.log(this.state.dataNew);
+    });
   };
 
   //---end modal stuff and inputs---\\
 
   //---calendar stuff---\\
   calendarOnChange = date => {
+    // don't set it
+
     var arr = this.state.data.slice();
     arr[this.state.selectedRow + 1][this.state.selectedColumn] = `${date.getMonth() +
       1}/${date.getDate()}/${date.getFullYear()}`;
@@ -461,24 +549,15 @@ export default class App extends React.Component {
   openCalendar = () => {
     this.setState({ calClass: "" });
   };
-  mousePosition = e => {
-    // if (this.state.calClass != "") {
-    //   this.setState({
-    //     x: e.screenX,
-    //     y: e.screenY
-    //   });
-    // }
+
+  toggleBurger = () => {
+    this.setState(prevState => ({ burger: !!prevState.burger ? "" : "is-active" }));
   };
   //---end calendar stuff---\\
 
   render() {
     return (
-      <div
-        className="App"
-        onClick={e => {
-          this.mousePosition(e);
-        }}
-      >
+      <div className="App">
         <div
           className={`cal ${this.state.calClass}`}
           style={{ top: this.state.y, left: this.state.x }}
@@ -495,39 +574,20 @@ export default class App extends React.Component {
             <a className="navbar-item" href="">
               Student Data Organization
             </a>
-            <div className="navbar-burger burger" data-target="navbarExampleTransparentExample">
+            <div
+              className={`navbar-burger burger ${this.state.burger}`}
+              data-target="navbarExampleTransparentExample"
+              onClick={() => {
+                this.toggleBurger();
+              }}
+            >
               <span />
               <span />
               <span />
             </div>
           </div>
 
-          <div id="navbarExampleTransparentExample" className="navbar-menu">
-            <div className="navbar-start">
-              <a className="navbar-item" href="">
-                Home
-              </a>
-              <div className="navbar-item has-dropdown is-hoverable">
-                <a className="navbar-link" href="">
-                  Docs
-                </a>
-                <div className="navbar-dropdown is-boxed">
-                  <a className="navbar-item" href="">
-                    Overview
-                  </a>
-                  <a className="navbar-item" href="">
-                    Logging In
-                  </a>
-                  <a className="navbar-item" href="">
-                    Features
-                  </a>
-                  <a className="navbar-item" href="">
-                    Errors
-                  </a>
-                </div>
-              </div>
-            </div>
-
+          <div id="navbarExampleTransparentExample" className={`navbar-menu ${this.state.burger}`}>
             <div className="navbar-end">
               <div className="navbar-item">
                 <div className="field is-grouped">
@@ -565,8 +625,6 @@ export default class App extends React.Component {
         {this.state.authButtonClass == "buttonNone" ? (
           this.state.currentFiles.length != 0 ? (
             <div className={"App"}>
-              <img src={this.state.profilePicture} />
-              <div className={"title is-1"}>{`Welcome back, ${this.state.profileName}`}</div>
               <div className="columns">
                 <div className="column">
                   <button
@@ -621,92 +679,92 @@ export default class App extends React.Component {
                 </div>
               </div>
 
-              <header
-                className={"container restraint"}
-                onClick={e => {
-                  this.mousePosition(e);
-                }}
-              >
+              <header className={"container restraint"}>
                 <HotTable
-                  afterChange={change => {
-                    this.handleSheetChange(change);
-                  }}
-                  afterSelection={(r, c) => {
-                    this.handleSheetSelection(r, c);
-                  }}
-                  contextMenu={{
-                    callback: function(key, selection, clickEvent) {
-                      // Common callback for all options
+                  settings={{
+                    afterSelection: (r, c) => {
+                      this.handleSheetSelection(r, c);
                     },
-                    items: {
-                      add_date: {
-                        name: "Add Date",
-                        callback: (key, selection, clickEvent) => {
-                          this.openCalendar();
-                        }
+                    dropdownMenu: {
+                      callback: function(key, selection, clickEvent) {
+                        // Common callback for all options
                       },
-                      row_above: {},
-                      row_below: {},
-                      column_left: { name: "Insert Column Left" },
-                      column_right: { name: "Insert Column Right" }
-                    }
-                  }}
-                  dropdownMenu={{
-                    callback: function(key, selection, clickEvent) {
-                      // Common callback for all options
-                    },
-                    items: {
-                      clear_format: {
-                        name: "Clear Formatting",
-                        callback: (key, selection, clickEvent) => {
-                          let arr = this.state.columns;
-                          arr[selection[0].start.toObject().col] = {};
-                          this.setState({ columns: arr });
-                        }
-                      },
-                      checkbox: {
-                        name: "Add Checkboxes",
-                        callback: (key, selection, clickEvent) => {
-                          // Callback for specific option
-                          let arr = this.state.columns;
-                          arr[selection[0].start.toObject().col] = {
-                            type: "checkbox"
-                          };
-                          this.setState({ columns: arr });
-                        }
-                      },
-                      dropdown: {
-                        name: "Add Dropdown",
-                        callback: (key, selection, clickEvent) => {
-                          this.handleOpenModal("Drop");
-                        }
-                      },
+                      items: {
+                        clear_format: {
+                          name: "Clear Formatting",
+                          callback: (key, selection, clickEvent) => {
+                            let arr = this.state.columns;
+                            arr[selection[0].start.toObject().col] = {};
+                            this.setState({ columns: arr });
+                          }
+                        },
+                        checkbox: {
+                          name: "Add Checkboxes",
+                          callback: (key, selection, clickEvent) => {
+                            // Callback for specific option
+                            let arr = this.state.columns;
+                            arr[selection[0].start.toObject().col] = {
+                              type: "checkbox"
+                            };
+                            this.setState({ columns: arr });
+                          }
+                        },
+                        dropdown: {
+                          name: "Add Dropdown",
+                          callback: (key, selection, clickEvent) => {
+                            this.handleOpenModal("Drop");
+                          }
+                        },
 
-                      change_heading: {
-                        name: "Change Heading Name",
-                        callback: (key, selection, clickEvent) => {
-                          this.handleOpenModal("Head");
+                        change_heading: {
+                          name: "Change Heading Name",
+                          callback: (key, selection, clickEvent) => {
+                            this.handleOpenModal("Head");
+                          }
                         }
                       }
-                    }
-                  }}
-                  data={this.state.data.slice(1)}
-                  colHeaders={true}
-                  rowHeaders={true}
-                  width="6000"
-                  columns={this.state.columns}
-                  height="700"
-                  colHeaders={this.state.header}
-                  settings={{
-                    width: 880,
+                    },
+                    contextMenu: {
+                      callback: function(key, selection, clickEvent) {
+                        // Common callback for all options
+                      },
+                      items: {
+                        add_date: {
+                          name: "Add Date",
+                          callback: (key, selection, clickEvent) => {
+                            this.openCalendar();
+                          }
+                        },
+                        row_above: {
+                          name: "Insert Row Above",
+                          callback: (key, selection, clickEvent) => {
+                            let arr = this.state.data.slice();
+                            arr.splice(selection[0].start.toObject().row, 0, []);
+                            this.setState({ data: arr });
+                          }
+                        },
+                        row_below: {
+                          name: "Insert Row Below",
+                          callback: (key, selection, clickEvent) => {}
+                        },
+                        column_left: { name: "Insert Column Left" },
+                        column_right: { name: "Insert Column Right" }
+                      }
+                    },
+                    colHeaders: true,
+                    rowHeaders: true,
+                    height: "700",
+                    afterChange: change => {
+                      this.handleSheetChange(change);
+                    },
+                    data: this.state.data.slice(1),
+                    columns: this.state.columns,
+                    colHeaders: this.state.header,
                     autoWrapRow: true,
-                    height: 200,
                     manualRowResize: true,
                     manualColumnResize: true,
                     rowHeaders: true,
-                    manualRowMove: true,
-                    manualColumnMove: true,
-
+                    fixedColumnsLeft: 2,
                     startRows: 50,
                     startCols: 26,
                     colWidths: "100px",
@@ -719,26 +777,30 @@ export default class App extends React.Component {
               </header>
             </div>
           ) : (
-            <div className="columns">
-              <div className="column">
-                <button
-                  className="button is-primary"
-                  onClick={() => {
-                    this.handleOpenSheet();
-                  }}
-                >
-                  open spreadsheet
-                </button>
-              </div>
-              <div className="column">
-                <button
-                  className="button is-link"
-                  onClick={() => {
-                    this.handleOpenModal("New");
-                  }}
-                >
-                  Create New
-                </button>
+            <div>
+              <img src={this.state.profilePicture} />
+              <div className={"title is-1"}>{`Welcome back, ${this.state.profileName}`}</div>
+              <div className="columns">
+                <div className="column">
+                  <button
+                    className="button is-primary"
+                    onClick={() => {
+                      this.handleOpenSheet();
+                    }}
+                  >
+                    open spreadsheet
+                  </button>
+                </div>
+                <div className="column">
+                  <button
+                    className="button is-link"
+                    onClick={() => {
+                      this.handleOpenModal("New");
+                    }}
+                  >
+                    Create New
+                  </button>
+                </div>
               </div>
             </div>
           )
