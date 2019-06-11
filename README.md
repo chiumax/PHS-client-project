@@ -10,9 +10,9 @@ Done in like 2 weeks.
 
 Client wanted a method to quickly record information about children on a needs improvement list for graduation.
 
-## Setup Environment
+## Setup Environment :tent:
 
-## Final Product Screenshots
+## Final Product Screenshots :camera:
 
 ## Code Style :art:
 
