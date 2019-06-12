@@ -23,6 +23,10 @@ Client wanted a method to quickly record information about children on a needs i
 
 ## Final Product Screenshots :camera:
 
+![](https://github.com/dumblole/PHS-client-project/blob/master/images/firefox_2019-06-12_05-31-48.png)
+![](https://github.com/dumblole/PHS-client-project/blob/master/images/firefox_2019-06-12_05-32-07.png)
+![](https://github.com/dumblole/PHS-client-project/blob/master/images/firefox_2019-06-12_05-36-29.png)
+![](https://github.com/dumblole/PHS-client-project/blob/master/images/chrome_2019-06-12_05-34-16.png)
 
 ## Code Style :art:
 
