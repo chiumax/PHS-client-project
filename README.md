@@ -6,8 +6,6 @@ Source for the project done in like 2 weeks
 
 ## Background :flags:
 
-Done in like 2 weeks.
-
 Client wanted a method to quickly record information about children on a needs improvement list for graduation.
 
 ## Setup Environment :tent:
